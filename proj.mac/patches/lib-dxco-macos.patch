@@ -1,0 +1,98 @@
+diff --git a/AdsAPI.cpp b/AdsAPI.cpp
+index 241b43e..63724e8 100644
+--- a/AdsAPI.cpp
++++ b/AdsAPI.cpp
+@@ -1,18 +1,22 @@
+ #include "AdsAPI.h"
+ 
+ #include "cocos2d.h"
++
++#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+ #include "platform/android/jni/JniHelper.h"
+ #include <jni.h>
++#endif
+ 
+ namespace dxco {
+ 
+ 	void AdsAPI::showAd() {
+-
++#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+ 		cocos2d::JniMethodInfo t;
+ 
+ 		if (cocos2d::JniHelper::getStaticMethodInfo(t, "com/dxco/DxcoCpp", "showInterstitial", "()V")) {
+ 			t.env->CallStaticVoidMethod(t.classID, t.methodID);
+ 		}
++#endif
+ 	}
+ 
+ } /* namespace dxco */
+diff --git a/RateHelper.cpp b/RateHelper.cpp
+index e6db635..c2906dc 100644
+--- a/RateHelper.cpp
++++ b/RateHelper.cpp
+@@ -1,8 +1,10 @@
+ #include "RateHelper.h"
++#include "cocos2d.h"
++
++#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+ #include "platform/android/jni/JniHelper.h"
+ #include <jni.h>
+-
+-#include "cocos2d.h"
++#endif
+ 
+ namespace dxco {
+ 
+diff --git a/facebook/FacebookAPI.cpp b/facebook/FacebookAPI.cpp
+index 8b32590..0cde4b0 100644
+--- a/facebook/FacebookAPI.cpp
++++ b/facebook/FacebookAPI.cpp
+@@ -1,5 +1,26 @@
+ #include "FacebookAPI.h"
+ #include "cocos2d.h"
++
++#if (CC_TARGET_PLATFORM != CC_PLATFORM_ANDROID)
++
++namespace dxco {
++
++// Desktop builds ship without the Facebook SDK: report no session so that
++// UserDAO skips every Facebook code path.
++bool FacebookAPI::hasFacebookSession() { return false; }
++
++std::string FacebookAPI::getAccessToken() { return ""; }
++std::string FacebookAPI::getUserID() { return ""; }
++std::string FacebookAPI::getUsername() { return ""; }
++std::string FacebookAPI::getFirstName() { return ""; }
++std::string FacebookAPI::getLastName() { return ""; }
++void FacebookAPI::invite() { }
++void FacebookAPI::rate() { }
++
++} /* namespace dxco */
++
++#else
++
+ #include "platform/android/jni/JniHelper.h"
+ #include <jni.h>
+ 
+@@ -195,3 +216,5 @@ bool FacebookAPI::hasFacebookSession() {
+ 
+ }
+ } /* namespace dxco */
++
++#endif
+diff --git a/facebook/FacebookAPI.h b/facebook/FacebookAPI.h
+index b0021ff..51a4ea3 100644
+--- a/facebook/FacebookAPI.h
++++ b/facebook/FacebookAPI.h
+@@ -1,7 +1,11 @@
+ #ifndef FACEBOOKAPI_H_
+ #define FACEBOOKAPI_H_
+ 
++#include "platform/CCPlatformConfig.h"
++
++#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+ #include <jni.h>
++#endif
+ 
+ #include <string>
+ 

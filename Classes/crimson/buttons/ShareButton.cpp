@@ -1,7 +1,9 @@
 #include "ShareButton.h"
 #include "cocos2d.h"
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
 #include "platform/android/jni/JniHelper.h"
 #include <jni.h>
+#endif
 #include "../GameModel.h"
 #include "../levels/Level.h"
 #include "../../HelloWorldScene.h"
@@ -21,8 +23,13 @@ std::string ShareButton::takeScreenshot() {
 	cocos2d::CCRenderTexture * tex = cocos2d::CCRenderTexture::create(screenSize.width, screenSize.height);
 	tex->setPosition(ccp(screenSize.width/2, screenSize.height/2));
 
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
 	//hardcode damn cocos never creates its writable path
 	std::string filename = "/sdcard/Android/data/share_screenshot.png";
+#else
+	std::string filename = cocos2d::CCFileUtils::sharedFileUtils()->getWritablePath()
+			+ "share_screenshot.png";
+#endif
 
 	tex->begin();
 	model->vista->getParent()->visit();
@@ -75,6 +82,18 @@ void ShareButton::execute() {
 	model->vista->levelFinishedLayer->returnShare();
 }
 #else
+// No share sheet on desktop: write the screenshot next to the save data and log
+// the message that would have been shared.
+void ShareButton::execute() {
+
+	model->vista->levelFinishedLayer->prepareShare();
+
+	std::string path = takeScreenshot();
+	std::string msg = getMessage();
+	CCLOG("SHARE (desktop): \"%s\" with screenshot %s", msg.c_str(), path.c_str());
+
+	model->vista->levelFinishedLayer->returnShare();
+}
 #endif
 
 } /* namespace dxco */

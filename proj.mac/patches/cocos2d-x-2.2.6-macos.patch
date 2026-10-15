@@ -1,0 +1,695 @@
+--- a/CocosDenshion/mac/CDXMacOSXSupport.h
++++ b/CocosDenshion/mac/CDXMacOSXSupport.h
+@@ -23,14 +23,14 @@
+  */
+ 
+ /**
+- A set of proxy classes to allow iOS audio code to run on MacOS X. AVAudioPlayer is implemented using NSSound.
+- AVAudioSession is a "do nothing" class as it isn't really relevant on MacOS X.
++ A set of proxy classes to allow iOS audio code to run on MacOS X. CDXAVAudioPlayer is implemented using NSSound.
++ CDXAVAudioSession is a "do nothing" class as it isn't really relevant on MacOS X.
+  
+  Limitations:
+- AVAudioPlayer numberOfLoops not correctly supported.  Looping is either on or off, can not specify a specific number of loops.
+- AVAudioPlayer panning not supported.
+- AVAudioPlayer metering not supported.
+- AVAudioSession nothing is supported, not applicable to MacOS X.
++ CDXAVAudioPlayer numberOfLoops not correctly supported.  Looping is either on or off, can not specify a specific number of loops.
++ CDXAVAudioPlayer panning not supported.
++ CDXAVAudioPlayer metering not supported.
++ CDXAVAudioSession nothing is supported, not applicable to MacOS X.
+  */
+ 
+ #import <Availability.h>
+@@ -40,30 +40,22 @@
+ #import <Foundation/Foundation.h>
+ #import <AppKit/NSSound.h>
+ 
+-enum AudioSessionProperties {
+-	kAudioSessionProperty_OtherAudioIsPlaying,
+-	kAudioSessionProperty_AudioRoute	
+-};
+-#ifdef __cplusplus
+-extern "C" {
+-#endif	
+-	
+-extern OSStatus AudioSessionGetProperty(UInt32 inID, UInt32 *ioDataSize, void *outData);    
++// The macOS SDK now ships the (deprecated) iOS AudioSession API itself, so these
++// 2010-era shims would redefine kAudioSessionProperty_* and collide with the
++// real AudioSessionGetProperty declaration. The two CDAudioManager call sites
++// are patched to skip them on macOS instead.
+ 
+-#ifdef __cplusplus
+-}
+-#endif
+ /**
+- Based on AVAudioPlayer.h header in AVFoundation headers
++ Based on CDXAVAudioPlayer.h header in AVFoundation headers
+  */
+ @class NSData, NSURL, NSError, NSDictionary;
+-@protocol AVAudioPlayerDelegate;
++@protocol CDXAVAudioPlayerDelegate;
+ 
+ /* This class is available with iPhone 2.2 or later */
+-@interface AVAudioPlayer : NSObject <NSSoundDelegate> {
++@interface CDXAVAudioPlayer : NSObject <NSSoundDelegate> {
+ 	
+ 	// properties
+-	id<AVAudioPlayerDelegate> delegate;
++	id<CDXAVAudioPlayerDelegate> delegate;
+ 	NSUInteger numberOfChannels;
+ 	BOOL playing;
+ 	NSTimeInterval duration; 
+@@ -104,7 +96,7 @@
+ @property(readonly) NSUInteger numberOfChannels;
+ @property(readonly) NSTimeInterval duration; /* the duration of the sound. */
+ 
+-@property(assign) id<AVAudioPlayerDelegate> delegate; /* the delegate will be sent playerDidFinishPlaying */ 
++@property(assign) id<CDXAVAudioPlayerDelegate> delegate; /* the delegate will be sent playerDidFinishPlaying */ 
+ 
+ /* one of these three properties will be non-nil based on the init... method used */
+ @property(readonly) NSURL *url; /* returns nil if object was not created with a URL */
+@@ -136,52 +128,52 @@
+ 
+ @end
+ 
+-/* A protocol for delegates of AVAudioPlayer */
+-@protocol AVAudioPlayerDelegate <NSObject>
++/* A protocol for delegates of CDXAVAudioPlayer */
++@protocol CDXAVAudioPlayerDelegate <NSObject>
+ @optional 
+ /* audioPlayerDidFinishPlaying:successfully: is called when a sound has finished playing. This method is NOT called if the player is stopped due to an interruption. */
+-- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag;
++- (void)audioPlayerDidFinishPlaying:(CDXAVAudioPlayer *)player successfully:(BOOL)flag;
+ 
+ /* if an error occurs while decoding it will be reported to the delegate. */
+-- (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error;
++- (void)audioPlayerDecodeErrorDidOccur:(CDXAVAudioPlayer *)player error:(NSError *)error;
+ 
+ /* audioPlayerBeginInterruption: is called when the audio session has been interrupted while the player was playing. The player will have been paused. */
+-- (void)audioPlayerBeginInterruption:(AVAudioPlayer *)player;
++- (void)audioPlayerBeginInterruption:(CDXAVAudioPlayer *)player;
+ 
+ /* audioPlayerEndInterruption:withFlags: is called when the audio session interruption has ended and this player had been interrupted while playing. */
+-/* Currently the only flag is AVAudioSessionInterruptionFlags_ShouldResume. */
+-- (void)audioPlayerEndInterruption:(AVAudioPlayer *)player withFlags:(NSUInteger)flags;
++/* Currently the only flag is CDXAVAudioSessionInterruptionFlags_ShouldResume. */
++- (void)audioPlayerEndInterruption:(CDXAVAudioPlayer *)player withFlags:(NSUInteger)flags;
+ 
+ /* audioPlayerEndInterruption: is called when the preferred method, audioPlayerEndInterruption:withFlags:, is not implemented. */
+-- (void)audioPlayerEndInterruption:(AVAudioPlayer *)player;
++- (void)audioPlayerEndInterruption:(CDXAVAudioPlayer *)player;
+ @end
+ 
+ 
+ /**
+- Taken from AVAudioSession.h header in AVFoundation headers
++ Taken from CDXAVAudioSession.h header in AVFoundation headers
+  */
+ 
+ /* This protocol is available with iPhone 3.0 or later */
+-@protocol AVAudioSessionDelegate;
++@protocol CDXAVAudioSessionDelegate;
+ @class NSError, NSString;
+ 
+ /* values for the category property */
+-extern NSString *const AVAudioSessionCategoryAmbient;
+-extern NSString *const AVAudioSessionCategorySoloAmbient;
+-extern NSString *const AVAudioSessionCategoryPlayback;
+-extern NSString *const AVAudioSessionCategoryRecord;
+-extern NSString *const AVAudioSessionCategoryPlayAndRecord;
+-extern NSString *const AVAudioSessionCategoryAudioProcessing;
++extern NSString *const CDXAVAudioSessionCategoryAmbient;
++extern NSString *const CDXAVAudioSessionCategorySoloAmbient;
++extern NSString *const CDXAVAudioSessionCategoryPlayback;
++extern NSString *const CDXAVAudioSessionCategoryRecord;
++extern NSString *const CDXAVAudioSessionCategoryPlayAndRecord;
++extern NSString *const CDXAVAudioSessionCategoryAudioProcessing;
+ 
+ enum {
+-	AVAudioSessionInterruptionFlags_ShouldResume = 1
++	CDXAVAudioSessionInterruptionFlags_ShouldResume = 1
+ };
+ 
+ enum {	
+-	AVAudioSessionSetActiveFlags_NotifyOthersOnDeactivation = 1
++	CDXAVAudioSessionSetActiveFlags_NotifyOthersOnDeactivation = 1
+ };
+ 
+-@interface AVAudioSession : NSObject {
++@interface CDXAVAudioSession : NSObject {
+ 	
+ 	// properties
+ 	NSString* category;
+@@ -192,7 +184,7 @@
+ 	double currentHardwareSampleRate;
+ 	NSInteger currentHardwareInputNumberOfChannels;
+ 	NSInteger currentHardwareOutputNumberOfChannels;
+-	id<AVAudioSessionDelegate> delegate;
++	id<CDXAVAudioSessionDelegate> delegate;
+ 
+ @private
+     __strong void *_impl;
+@@ -201,7 +193,7 @@
+ /* returns singleton instance */
+ + (id)sharedInstance;
+ 
+-@property(assign) id<AVAudioSessionDelegate> delegate;
++@property(assign) id<CDXAVAudioSessionDelegate> delegate;
+ 
+ - (BOOL)setActive:(BOOL)beActive error:(NSError**)outError;
+ - (BOOL)setActive:(BOOL)beActive withFlags:(NSInteger)flags error:(NSError**)outError;
+@@ -222,8 +214,8 @@
+ @end
+ 
+ 
+-/* A protocol for delegates of AVAudioSession */
+-@protocol AVAudioSessionDelegate <NSObject>
++/* A protocol for delegates of CDXAVAudioSession */
++@protocol CDXAVAudioSessionDelegate <NSObject>
+ @optional 
+ 
+ - (void)beginInterruption;
+--- a/CocosDenshion/mac/CDXMacOSXSupport.mm
++++ b/CocosDenshion/mac/CDXMacOSXSupport.mm
+@@ -30,19 +30,17 @@
+ #import "SimpleAudioEngine.h"
+ #import "CocosDenshion.h"
+ 
+-NSString * const AVAudioSessionCategoryAmbient = @"AVAudioSessionCategoryAmbient";
+-NSString *const AVAudioSessionCategorySoloAmbient = @"AVAudioSessionCategorySoloAmbient";
+-NSString *const AVAudioSessionCategoryPlayback = @"AVAudioSessionCategoryPlayback";
+-NSString *const AVAudioSessionCategoryRecord = @"AVAudioSessionCategoryRecord";
+-NSString *const AVAudioSessionCategoryPlayAndRecord = @"AVAudioSessionCategoryPlayAndRecord";
+-NSString *const AVAudioSessionCategoryAudioProcessing = @"AVAudioSessionCategoryAudioProcessing";
++NSString * const CDXAVAudioSessionCategoryAmbient = @"CDXAVAudioSessionCategoryAmbient";
++NSString *const CDXAVAudioSessionCategorySoloAmbient = @"CDXAVAudioSessionCategorySoloAmbient";
++NSString *const CDXAVAudioSessionCategoryPlayback = @"CDXAVAudioSessionCategoryPlayback";
++NSString *const CDXAVAudioSessionCategoryRecord = @"CDXAVAudioSessionCategoryRecord";
++NSString *const CDXAVAudioSessionCategoryPlayAndRecord = @"CDXAVAudioSessionCategoryPlayAndRecord";
++NSString *const CDXAVAudioSessionCategoryAudioProcessing = @"CDXAVAudioSessionCategoryAudioProcessing";
+ 
+-OSStatus AudioSessionGetProperty(UInt32 inID, UInt32 *ioDataSize, void *outData) {
+-	//TODO: set outData appropriately
+-	return 0;
+-}    
++// AudioSessionGetProperty stub removed: the macOS SDK declares the real one as
++// unavailable on macOS, which made this definition a conflicting redeclaration.
+ 
+-@implementation AVAudioPlayer
++@implementation CDXAVAudioPlayer
+ 
+ @synthesize delegate, numberOfChannels, pan, deviceCurrentTime, url, data;
+ 
+@@ -156,9 +154,9 @@
+ @end
+ 
+ /**
+- A "do nothing" implementation - AVAudioSession is not really relevant to Mac OS X.
++ A "do nothing" implementation - CDXAVAudioSession is not really relevant to Mac OS X.
+  */
+-@implementation AVAudioSession
++@implementation CDXAVAudioSession
+ @synthesize delegate, category, preferredHardwareSampleRate, preferredIOBufferDuration;
+ @synthesize inputIsAvailable, currentHardwareSampleRate, currentHardwareInputNumberOfChannels, currentHardwareOutputNumberOfChannels;
+ 
+--- a/CocosDenshion/mac/CDAudioManager.h
++++ b/CocosDenshion/mac/CDAudioManager.h
+@@ -89,8 +89,8 @@
+  as software decompression will take place.
+  @since v0.99
+  */
+-@interface CDLongAudioSource : NSObject <AVAudioPlayerDelegate, CDAudioInterruptProtocol>{
+-    AVAudioPlayer    *audioSourcePlayer;
++@interface CDLongAudioSource : NSObject <CDXAVAudioPlayerDelegate, CDAudioInterruptProtocol>{
++    CDXAVAudioPlayer    *audioSourcePlayer;
+     NSString        *audioSourceFilePath;
+     NSInteger        numberOfLoops;
+     float            volume;
+@@ -106,7 +106,7 @@
+ @protected
+     tLongAudioSourceState state;
+ }    
+-@property (readonly) AVAudioPlayer *audioSourcePlayer;
++@property (readonly) CDXAVAudioPlayer *audioSourcePlayer;
+ @property (readonly) NSString *audioSourceFilePath;
+ @property (readwrite, nonatomic) NSInteger numberOfLoops;
+ @property (readwrite, nonatomic) float volume;
+@@ -145,7 +145,7 @@
+  - Frameworks: OpenAL, AudioToolbox, AVFoundation
+  @since v0.8
+  */
+-@interface CDAudioManager : NSObject <CDLongAudioSourceDelegate, CDAudioInterruptProtocol, AVAudioSessionDelegate> {
++@interface CDAudioManager : NSObject <CDLongAudioSourceDelegate, CDAudioInterruptProtocol, CDXAVAudioSessionDelegate> {
+     CDSoundEngine        *soundEngine;
+     CDLongAudioSource    *backgroundMusic;
+     NSMutableArray        *audioSourceChannels;
+@@ -196,13 +196,13 @@
+ /** Call if you want to use built in resign behavior but need to do some additional audio processing on become active. */
+ - (void) applicationDidBecomeActive;
+ 
+-//New AVAudioPlayer API
++//New CDXAVAudioPlayer API
+ /** Loads the data from the specified file path to the channel's audio source */
+ -(CDLongAudioSource*) audioSourceLoad:(NSString*) filePath channel:(tAudioSourceChannel) channel;
+ /** Retrieves the audio source for the specified channel */
+ -(CDLongAudioSource*) audioSourceForChannel:(tAudioSourceChannel) channel;
+ 
+-//Legacy AVAudioPlayer API
++//Legacy CDXAVAudioPlayer API
+ /** Plays music in background. The music can be looped or not
+  It is recommended to use .aac files as background music since they are decoded by the device (hardware).
+  */
+--- a/CocosDenshion/mac/CDAudioManager.m
++++ b/CocosDenshion/mac/CDAudioManager.m
+@@ -66,12 +66,12 @@
+         //New file
+         if (state != kLAS_Init) {
+             [audioSourceFilePath release];//Release old file path
+-            [audioSourcePlayer release];//Release old AVAudioPlayer, they can't be reused
++            [audioSourcePlayer release];//Release old CDXAVAudioPlayer, they can't be reused
+         }
+         audioSourceFilePath = [filePath copy];
+         NSError *error = nil;
+         NSString *path = [CDUtilities fullPathFromRelativePath:audioSourceFilePath];
+-        audioSourcePlayer = [(AVAudioPlayer*)[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:path] error:&error];
++        audioSourcePlayer = [(CDXAVAudioPlayer*)[CDXAVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:path] error:&error];
+         if (error == nil) {
+             [audioSourcePlayer prepareToPlay];
+             audioSourcePlayer.delegate = self;
+@@ -189,12 +189,12 @@
+     numberOfLoops = loopCount;
+ }    
+ 
+-- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
++- (void)audioPlayerDidFinishPlaying:(CDXAVAudioPlayer *)player successfully:(BOOL)flag {
+     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player finished");
+ #if TARGET_IPHONE_SIMULATOR    
+     CDLOGINFO(@"Denshion::CDLongAudioSource - workaround for OpenAL clobbered audio issue");
+     //This is a workaround for an issue in all simulators (tested to 3.1.2).  Problem is 
+-    //that OpenAL audio playback is clobbered when an AVAudioPlayer stops.  Workaround
++    //that OpenAL audio playback is clobbered when an CDXAVAudioPlayer stops.  Workaround
+     //is to keep the player playing on an endless loop with 0 volume and then when
+     //it is played again reset the volume and set loop count appropriately.
+     //NB: this workaround is not foolproof but it is good enough for most situations.
+@@ -207,11 +207,11 @@
+     }    
+ }    
+ 
+--(void)audioPlayerBeginInterruption:(AVAudioPlayer *)player {
++-(void)audioPlayerBeginInterruption:(CDXAVAudioPlayer *)player {
+     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player interrupted");
+ }
+ 
+--(void)audioPlayerEndInterruption:(AVAudioPlayer *)player {
++-(void)audioPlayerEndInterruption:(CDXAVAudioPlayer *)player {
+     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player resumed");
+     if (self.backgroundMusic) {
+         //Check if background music can play as rules may have changed during 
+@@ -246,7 +246,7 @@
+ 
+ -(BOOL) audioSessionSetActive:(BOOL) active {
+     NSError *activationError = nil;
+-    if ([[AVAudioSession sharedInstance] setActive:active error:&activationError]) {
++    if ([[CDXAVAudioSession sharedInstance] setActive:active error:&activationError]) {
+         _audioSessionActive = active;
+         CDLOGINFO(@"Denshion::CDAudioManager - Audio session set active %i succeeded", active); 
+         return YES;
+@@ -259,7 +259,7 @@
+ 
+ -(BOOL) audioSessionSetCategory:(NSString*) category {
+     NSError *categoryError = nil;
+-    if ([[AVAudioSession sharedInstance] setCategory:category error:&categoryError]) {
++    if ([[CDXAVAudioSession sharedInstance] setCategory:category error:&categoryError]) {
+         CDLOGINFO(@"Denshion::CDAudioManager - Audio session set category %@ succeeded", category); 
+         return YES;
+     } else {
+@@ -323,10 +323,15 @@
+ }    
+ 
+ -(BOOL) isOtherAudioPlaying {
++#ifndef __IPHONE_OS_VERSION_MAX_ALLOWED
++    // No audio session on macOS: assume we are free to play.
++    return NO;
++#else
+     UInt32 isPlaying = 0;
+     UInt32 varSize = sizeof(isPlaying);
+     AudioSessionGetProperty (kAudioSessionProperty_OtherAudioIsPlaying, &varSize, &isPlaying);
+     return (isPlaying != 0);
++#endif
+ }
+ 
+ -(void) setMode:(tAudioManagerMode) mode {
+@@ -338,7 +343,7 @@
+             //Share audio with other app
+             CDLOGINFO(@"Denshion::CDAudioManager - Audio will be shared");
+             //_audioSessionCategory = kAudioSessionCategory_AmbientSound;
+-            _audioSessionCategory = AVAudioSessionCategoryAmbient;
++            _audioSessionCategory = CDXAVAudioSessionCategoryAmbient;
+             willPlayBackgroundMusic = NO;
+             break;
+             
+@@ -346,7 +351,7 @@
+             //Use audio exclusively - if other audio is playing it will be stopped
+             CDLOGINFO(@"Denshion::CDAudioManager -  Audio will be exclusive");
+             //_audioSessionCategory = kAudioSessionCategory_SoloAmbientSound;
+-            _audioSessionCategory = AVAudioSessionCategorySoloAmbient;
++            _audioSessionCategory = CDXAVAudioSessionCategorySoloAmbient;
+             willPlayBackgroundMusic = YES;
+             break;
+             
+@@ -354,7 +359,7 @@
+             //Use audio exclusively, ignore mute switch and sleep
+             CDLOGINFO(@"Denshion::CDAudioManager -  Media playback mode, audio will be exclusive");
+             //_audioSessionCategory = kAudioSessionCategory_MediaPlayback;
+-            _audioSessionCategory = AVAudioSessionCategoryPlayback;
++            _audioSessionCategory = CDXAVAudioSessionCategoryPlayback;
+             willPlayBackgroundMusic = YES;
+             break;
+             
+@@ -362,7 +367,7 @@
+             //Use audio exclusively, ignore mute switch and sleep, has inputs and outputs
+             CDLOGINFO(@"Denshion::CDAudioManager -  Play and record mode, audio will be exclusive");
+             //_audioSessionCategory = kAudioSessionCategory_PlayAndRecord;
+-            _audioSessionCategory = AVAudioSessionCategoryPlayAndRecord;
++            _audioSessionCategory = CDXAVAudioSessionCategoryPlayAndRecord;
+             willPlayBackgroundMusic = YES;
+             break;
+             
+@@ -371,12 +376,12 @@
+             if ([self isOtherAudioPlaying]) {
+                 CDLOGINFO(@"Denshion::CDAudioManager - Other audio is playing audio will be shared");
+                 //_audioSessionCategory = kAudioSessionCategory_AmbientSound;
+-                _audioSessionCategory = AVAudioSessionCategoryAmbient;
++                _audioSessionCategory = CDXAVAudioSessionCategoryAmbient;
+                 willPlayBackgroundMusic = NO;
+             } else {
+                 CDLOGINFO(@"Denshion::CDAudioManager - Other audio is not playing audio will be exclusive");
+                 //_audioSessionCategory = kAudioSessionCategory_SoloAmbientSound;
+-                _audioSessionCategory = AVAudioSessionCategorySoloAmbient;
++                _audioSessionCategory = CDXAVAudioSessionCategorySoloAmbient;
+                 willPlayBackgroundMusic = YES;
+             }    
+             
+@@ -404,7 +409,7 @@
+     if ((self = [super init])) {
+         
+         //Initialise the audio session 
+-        AVAudioSession* session = [AVAudioSession sharedInstance];
++        CDXAVAudioSession* session = [CDXAVAudioSession sharedInstance];
+         session.delegate = self;
+     
+         _mode = mode;
+@@ -475,10 +480,11 @@
+ //determine ringer switch state
+ -(BOOL) isDeviceMuted {
+ 
+-#if TARGET_IPHONE_SIMULATOR
+-    //Calling audio route stuff on the simulator causes problems
++#if TARGET_IPHONE_SIMULATOR || !defined(__IPHONE_OS_VERSION_MAX_ALLOWED)
++    //Calling audio route stuff on the simulator causes problems, and macOS has
++    //no ringer switch to inspect in the first place.
+     return NO;
+-#else    
++#else
+     CFStringRef newAudioRoute;
+     UInt32 propertySize = sizeof (CFStringRef);
+     
+@@ -621,7 +627,7 @@
+     self->_resigned = YES;
+     
+     //Set the audio sesssion to one that allows sharing so that other audio won't be clobbered on resume
+-    [self audioSessionSetCategory:AVAudioSessionCategoryAmbient];
++    [self audioSessionSetCategory:CDXAVAudioSessionCategoryAmbient];
+     
+     switch (_resignBehavior) {
+             
+@@ -727,7 +733,7 @@
+ #if __CC_PLATFORM_IOS >= 40000
+ -(void) endInterruptionWithFlags:(NSUInteger)flags {
+     CDLOGINFO(@"Denshion::CDAudioManager - interruption ended with flags %i",flags);
+-    if (flags == AVAudioSessionInterruptionFlags_ShouldResume) {
++    if (flags == CDXAVAudioSessionInterruptionFlags_ShouldResume) {
+         [self audioSessionResumed];
+     }    
+ }
+--- a/CocosDenshion/mac/CocosDenshion.h
++++ b/CocosDenshion/mac/CocosDenshion.h
+@@ -41,12 +41,12 @@
+  - Frameworks: OpenAL, AudioToolbox, AVFoundation
+  
+ @par CDAudioManager
+-CDAudioManager is basically a thin wrapper around an AVAudioPlayer object used for playing
++CDAudioManager is basically a thin wrapper around an CDXAVAudioPlayer object used for playing
+ background music and a CDSoundEngine object used for playing sound effects. It manages the
+ audio session for you deals with audio session interruption. It is fairly low level and it
+ is expected you have some understanding of the underlying technologies. For example, for 
+ many use cases regarding background music it is expected you will work directly with the
+-backgroundMusic AVAudioPlayer which is exposed as a property.
++backgroundMusic CDXAVAudioPlayer which is exposed as a property.
+  
+ Requirements:
+   - Firmware: OS 2.2 or greater 
+--- a/cocos2dx/platform/mac/CCImage.mm
++++ b/cocos2dx/platform/mac/CCImage.mm
+@@ -23,6 +23,8 @@
+ ****************************************************************************/
+ #include <Foundation/Foundation.h>
+ #include <Cocoa/Cocoa.h>
++#include <ImageIO/ImageIO.h>
++#include <CoreText/CoreText.h>
+ #include "CCDirector.h"
+ #include "ccMacros.h"
+ #include "CCImage.h"
+@@ -336,23 +338,74 @@
+     return ret;
+ }
+ 
++// Cocos2d-x passes font names that are really resource paths ("fonts/Foo.ttf").
++// The Mac backend only ever looked those up as installed font families, so every
++// custom font silently fell back to the system default. Register the file with
++// CoreText instead and use its real PostScript name.
++static NSFont * _fontFromResource(const char * pFontName, int nSize)
++{
++    static NSMutableDictionary *registered = nil;
++    if (registered == nil) {
++        registered = [[NSMutableDictionary alloc] init];
++    }
++
++    NSString *name = [NSString stringWithUTF8String:pFontName];
++    if ([[name pathExtension] length] == 0) {
++        return nil;
++    }
++
++    NSString *postScriptName = [registered objectForKey:name];
++
++    if (postScriptName == nil) {
++        std::string fullPath = cocos2d::CCFileUtils::sharedFileUtils()->fullPathForFilename(pFontName);
++        NSURL *url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:fullPath.c_str()]];
++
++        CGDataProviderRef provider = CGDataProviderCreateWithURL((CFURLRef)url);
++        if (! provider) {
++            return nil;
++        }
++
++        CGFontRef cgFont = CGFontCreateWithDataProvider(provider);
++        CGDataProviderRelease(provider);
++        if (! cgFont) {
++            return nil;
++        }
++
++        // Already-registered fonts report an error we can safely ignore.
++        CTFontManagerRegisterGraphicsFont(cgFont, NULL);
++        postScriptName = [(NSString *)CGFontCopyPostScriptName(cgFont) autorelease];
++        CGFontRelease(cgFont);
++
++        if (postScriptName == nil) {
++            return nil;
++        }
++        [registered setObject:postScriptName forKey:name];
++    }
++
++    return [NSFont fontWithName:postScriptName size:nSize];
++}
++
+ static bool _initWithString(const char * pText, cocos2d::CCImage::ETextAlign eAlign, const char * pFontName, int nSize, tImageInfo* pInfo, cocos2d::ccColor3B* pStrokeColor)
+ {
+     bool bRet = false;
+ 
+ 	CCAssert(pText, "Invalid pText");
+ 	CCAssert(pInfo, "Invalid pInfo");
+-	
++
+ 	do {
+ 		NSString * string  = [NSString stringWithUTF8String:pText];
+-		
+-		// font
+-		NSFont *font = [[NSFontManager sharedFontManager]
++
++		// font: a bundled .ttf first, then an installed family of that name
++		NSFont *font = _fontFromResource(pFontName, nSize);
++
++		if (font == nil) {
++			font = [[NSFontManager sharedFontManager]
+ 						 fontWithFamily:[NSString stringWithUTF8String:pFontName]
+ 						traits:NSUnboldFontMask | NSUnitalicFontMask
+ 						 weight:0
+ 						 size:nSize];
+-		
++		}
++
+ 		if (font == nil) {
+ 			font = [[NSFontManager sharedFontManager]
+ 					fontWithFamily:@"Arial"
+@@ -450,27 +503,42 @@
+ 		
+ 		
+ 		NSRect textRect = NSMakeRect(xPadding, POTHigh - dimensions.height + yPadding, realDimensions.width, realDimensions.height);
+-		//Disable antialias
+-		
+-		[[NSGraphicsContext currentContext] setShouldAntialias:NO];	
+-		
+-		NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(POTWide, POTHigh)];
+-        
+-		[image lockFocus];
+-        
+-        // patch for mac retina display and lableTTF
+-        [[NSAffineTransform transform] set];
+-		
+-		//[stringWithAttributes drawAtPoint:NSMakePoint(xPadding, offsetY)]; // draw at offset position	
+-		[stringWithAttributes drawInRect:textRect];
+-		//[stringWithAttributes drawInRect:textRect withAttributes:tokenAttributesDict];
+-		NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithFocusedViewRect:NSMakeRect (0.0f, 0.0f, POTWide, POTHigh)];
+-		[image unlockFocus];
+-		
+-		data = (unsigned char*) [bitmap bitmapData];  //Use the same buffer to improve the performance.
+-		
++
++		// This used to render through -[NSImage lockFocus] and then grab the
++		// result with -initWithFocusedViewRect:. On a Retina display that hands
++		// back a 2x backing store (2*POTWide pixels per row), while the memcpy
++		// below still copies POTWide*POTHigh*4 bytes -- so every label came out
++		// as a quarter of the glyphs smeared across the texture. Draw into a
++		// bitmap of exactly the requested pixel size instead.
++		NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
++									initWithBitmapDataPlanes:NULL
++												  pixelsWide:POTWide
++												  pixelsHigh:POTHigh
++											   bitsPerSample:8
++											 samplesPerPixel:4
++													hasAlpha:YES
++													isPlanar:NO
++											  colorSpaceName:NSDeviceRGBColorSpace
++												 bytesPerRow:POTWide * 4
++												bitsPerPixel:32];
++		CC_BREAK_IF(!bitmap);
++
++		NSGraphicsContext *context = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
++		[NSGraphicsContext saveGraphicsState];
++		[NSGraphicsContext setCurrentContext:context];
++		[context setShouldAntialias:YES];
++
++		[[NSColor clearColor] set];
++		NSRectFill(NSMakeRect(0.0f, 0.0f, POTWide, POTHigh));
++		[stringWithAttributes drawInRect:textRect];
++
++		[context flushGraphics];
++		[NSGraphicsContext restoreGraphicsState];
++
++		data = (unsigned char*) [bitmap bitmapData];  //Use the same buffer to improve the performance.
++
+ 		NSUInteger textureSize = POTWide*POTHigh*4;
+-		
++
+ 		unsigned char* dataNew = new unsigned char[textureSize];
+ 		if (dataNew) {
+ 			memcpy(dataNew, data, textureSize);
+@@ -484,7 +552,6 @@
+ 			bRet = true;
+ 		}
+ 		[bitmap release];
+-		[image release];
+ 	} while (0);
+     return bRet;
+ }
+@@ -913,10 +980,78 @@
+     return true;
+ }
+ 
++// 2.2.6 shipped this as assert(false) on Mac, which silently no-ops in release
++// builds and breaks anything using CCRenderTexture to save a screenshot.
++// Implemented here with ImageIO; the extension picks PNG vs JPEG.
+ bool CCImage::saveToFile(const char *pszFilePath, bool bIsToRGB)
+ {
+-	assert(false);
+-	return false;
++    if (! pszFilePath || ! m_pData || m_nWidth <= 0 || m_nHeight <= 0)
++    {
++        return false;
++    }
++
++    NSString *path = [NSString stringWithUTF8String:pszFilePath];
++    NSString *extension = [[path pathExtension] lowercaseString];
++    bool isJpeg = [extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"];
++
++    // JPEG cannot carry alpha, and callers can also ask for RGB explicitly.
++    bool dropAlpha = m_bHasAlpha && (bIsToRGB || isJpeg);
++    size_t components = (m_bHasAlpha && !dropAlpha) ? 4 : 3;
++    size_t pixelCount = (size_t)m_nWidth * (size_t)m_nHeight;
++    size_t dataLength = pixelCount * components;
++
++    unsigned char *pixels = (unsigned char *)malloc(dataLength);
++    if (! pixels)
++    {
++        return false;
++    }
++
++    if (dropAlpha)
++    {
++        for (size_t i = 0; i < pixelCount; ++i)
++        {
++            pixels[i * 3 + 0] = m_pData[i * 4 + 0];
++            pixels[i * 3 + 1] = m_pData[i * 4 + 1];
++            pixels[i * 3 + 2] = m_pData[i * 4 + 2];
++        }
++    }
++    else
++    {
++        memcpy(pixels, m_pData, dataLength);
++    }
++
++    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
++    CGBitmapInfo bitmapInfo = (components == 4)
++            ? (m_bPreMulti ? kCGImageAlphaPremultipliedLast : kCGImageAlphaLast)
++            : kCGImageAlphaNone;
++
++    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, pixels, dataLength, NULL);
++    CGImageRef image = CGImageCreate(m_nWidth, m_nHeight, 8, 8 * components,
++                                     m_nWidth * components, colorSpace, bitmapInfo,
++                                     provider, NULL, false, kCGRenderingIntentDefault);
++
++    bool ok = false;
++    if (image)
++    {
++        CFStringRef type = isJpeg ? CFSTR("public.jpeg") : CFSTR("public.png");
++        CGImageDestinationRef destination = CGImageDestinationCreateWithURL(
++                (CFURLRef)[NSURL fileURLWithPath:path], type, 1, NULL);
++
++        if (destination)
++        {
++            CGImageDestinationAddImage(destination, image, NULL);
++            ok = CGImageDestinationFinalize(destination);
++            CFRelease(destination);
++        }
++
++        CGImageRelease(image);
++    }
++
++    CGDataProviderRelease(provider);
++    CGColorSpaceRelease(colorSpace);
++    free(pixels);
++
++    return ok;
+ }
+ 
+ 

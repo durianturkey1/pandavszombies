@@ -1,12 +1,26 @@
 #include "SoundUtil.h"
 #include "cocos2d.h"
 
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
 #include "platform/android/jni/JniHelper.h"
-
 #include <jni.h>
+#endif
 
 
 namespace dxco {
+
+#if (CC_TARGET_PLATFORM != CC_PLATFORM_ANDROID)
+
+// Desktop builds have no Java settings screen, so sound is simply always on.
+bool SoundUtil::isMusicOn() {
+	return true;
+}
+
+bool SoundUtil::isSoundEffectsOn() {
+	return true;
+}
+
+#else
 
 bool SoundUtil::isMusicOn() {
 
@@ -43,5 +57,7 @@ bool SoundUtil::isSoundEffectsOn() {
 
 	return result;
 }
+
+#endif
 
 } /* namespace dxco */

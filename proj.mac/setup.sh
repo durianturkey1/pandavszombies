@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Fetches cocos2d-x 2.2.6 into <repo>/cocos2d-x and applies the patches this
-# port needs to build against a current macOS SDK. Safe to re-run: it skips the
+# Fetches cocos2d-x 2.2.6 into <repo>/cocos2d-x, patches it for the current
+# macOS SDK, and checks out the lib-dxco submodule. Safe to re-run: it skips the
 # download if the tree is already there and skips patches already applied.
 
 set -euo pipefail
@@ -10,7 +10,6 @@ PROJ_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$PROJ_DIR")"
 COCOS_DIR="$REPO_DIR/cocos2d-x"
 PATCH_FILE="$PROJ_DIR/patches/cocos2d-x-2.2.6-macos.patch"
-DXCO_PATCH_FILE="$PROJ_DIR/patches/lib-dxco-macos.patch"
 TARBALL_URL="https://codeload.github.com/cocos2d/cocos2d-x/tar.gz/refs/tags/cocos2d-x-2.2.6"
 
 # Applies $2 inside $1, tolerating an already-patched tree.
@@ -45,18 +44,10 @@ apply_patch "$COCOS_DIR" "$PATCH_FILE"
 
 echo "==> Fetching the lib-dxco submodule"
 if [ ! -f "$REPO_DIR/Classes/dxco/Action.cpp" ]; then
-    # .gitmodules points at an SSH URL; fall back to HTTPS when that fails.
-    git -C "$REPO_DIR" submodule update --init 2>/dev/null || \
-    git -C "$REPO_DIR" -c submodule.Classes/dxco.url=https://github.com/DxCo-Games/lib-dxco.git \
-        submodule update --init Classes/dxco
+    git -C "$REPO_DIR" submodule update --init
 else
     echo "    already checked out"
 fi
-
-# lib-dxco is a separate upstream repo, so its Android JNI shims are guarded by
-# a patch here rather than committed.
-echo "==> Patching lib-dxco for desktop builds"
-apply_patch "$REPO_DIR/Classes/dxco" "$DXCO_PATCH_FILE"
 
 echo
 echo "Done. Build and run with:"

@@ -39,9 +39,10 @@ drag.
 
 Game code (`Classes/`) -- the Android JNI shims are now guarded so the same
 files compile on both platforms. Changes under `Classes/crimson/` are committed
-here; `Classes/dxco/` is the separate [lib-dxco](https://github.com/DxCo-Games/lib-dxco)
-submodule, so its changes ship as `patches/lib-dxco-macos.patch` and are applied
-by `setup.sh`.
+here; `Classes/dxco/` is the [lib-dxco](https://github.com/DxCo-Games/lib-dxco)
+submodule, whose changes live in a fork
+([durianturkey1/lib-dxco](https://github.com/durianturkey1/lib-dxco), branch
+`macos-port`) that `.gitmodules` now points at.
 
 | Area | Desktop behaviour |
 | --- | --- |

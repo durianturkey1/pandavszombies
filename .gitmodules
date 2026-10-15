@@ -1,3 +1,4 @@
 [submodule "Classes/dxco"]
 	path = Classes/dxco
-	url = git@github.com:DxCo-Games/lib-dxco.git 
+	url = https://github.com/durianturkey1/lib-dxco.git
+	branch = macos-port

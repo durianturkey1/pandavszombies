@@ -6,6 +6,7 @@
 #include "DefenseChapterLayer.h"
 #include "../SoundUtil.h"
 #include "../daos/UserDAO.h"
+#include "../GameProperties.h"
 #include "../layers/GameTypeSelectionLayer.h"
 #include "../../dxco/DB.h"
 #include "../../dxco/LabelUtil.h"
@@ -92,7 +93,17 @@ bool DefenseLayer::init() {
 	// level-up cards stack on top of it.
 	DefenseWeapon weapon = DefenseWeapon::getEquipped();
 	this->stats = weapon.getBaseStats();
+
+	// The store's ATTACK upgrade is the progression that carries between runs:
+	// chapters scale faster than a single run's cards can, so without this the
+	// later ones are unwinnable no matter which gun is equipped. It starts at 10
+	// and each purchase adds 10, worth +50% damage apiece.
+	float attack = (float) GameProperties::get("attack.damage");
+	if (attack > 10.0f) {
+		this->stats.damage *= 1.0f + (attack - 10.0f) / 20.0f;
+	}
 	this->bulletImage = weapon.getBulletImagePath();
+	this->fireSound = weapon.getSoundPath();
 	this->weaponName = weapon.getName();
 
 	this->preloadZombies();
@@ -253,12 +264,15 @@ int DefenseLayer::getWaveCount() {
 }
 
 int DefenseLayer::getWaveSize(int wave) {
-	return 5 + 2 * wave + 3 * this->chapter;
+	return 5 + 2 * wave + this->chapter;
 }
 
 float DefenseLayer::getZombieLife(int wave) {
-	// Compounding so late chapters genuinely need upgraded guns, not just patience.
-	float chapterScale = pow(1.35f, (float) (this->chapter - 1));
+	// Compounding so late chapters genuinely need upgraded guns, not just
+	// patience. 1.2x is deliberate: at 1.35x chapter 12 reached 800hp zombies
+	// and an 11,000hp boss, which no combination of guns and cards can chew
+	// through in the time a wave gives you.
+	float chapterScale = pow(1.15f, (float) (this->chapter - 1));
 	return (7.0f + 2.5f * wave) * chapterScale;
 }
 
@@ -272,8 +286,10 @@ float DefenseLayer::getZombieSpeed(int wave) {
 }
 
 float DefenseLayer::getSpawnInterval(int wave) {
-	float interval = 1.5f - 0.07f * wave - 0.06f * this->chapter;
-	return interval < 0.22f ? 0.22f : interval;
+	// Spawn pressure rises mostly inside a chapter, not across chapters: a
+	// chapter has to open gently enough to build levels before it squeezes.
+	float interval = 1.6f - 0.08f * wave - 0.03f * this->chapter;
+	return interval < 0.35f ? 0.35f : interval;
 }
 
 bool DefenseLayer::isBossWave(int wave) {
@@ -404,19 +420,46 @@ void DefenseLayer::updateShooting(float dt) {
 
 	float originX = this->panda->getPositionX();
 	float originY = this->panda->getPositionY() + PANDA_SIZE * 0.25f;
-	float baseAngle = atan2(target->getY() - originY, target->getX() - originX) * 180.0f / (float) M_PI;
+
+	// Lead the shot. Aiming straight at where a zombie is right now means the
+	// bullet arrives where it was: by chapter 12 a zombie walks ~40 points in
+	// the time a bazooka round crosses the lane, which is wider than its hit
+	// radius, so every single shot missed. Two refinement passes are plenty for
+	// a target moving in a straight line.
+	float targetX = target->getX();
+	float targetY = target->getY();
+	float zombieSpeed = target->speed * (1.0f - this->stats.enemySlow);
+
+	for (int pass = 0; pass < 2; pass++) {
+		float dx = targetX - originX;
+		float dy = targetY - originY;
+		float travel = sqrt(dx * dx + dy * dy) / this->stats.bulletSpeed;
+		targetY = target->getY() - zombieSpeed * travel;
+	}
+
+	if (targetY < originY) {
+		targetY = originY;  // never aim back down into the gate
+	}
+
+	float baseAngle = atan2(targetY - originY, targetX - originX) * 180.0f / (float) M_PI;
 
 	// Fan the volley out around the aim line.
 	float spread = this->stats.spreadDegrees;
 	float start = baseAngle - spread * (this->stats.projectiles - 1) / 2.0f;
 
 	for (int i = 0; i < this->stats.projectiles; i++) {
+		float damage = this->stats.damage;
+
+		if (this->stats.critChance > 0 && (rand() % 100) < (this->stats.critChance * 100)) {
+			damage *= 2.5f;
+		}
+
 		this->bullets.push_back(new DefenseBullet(this->bulletImage, originX, originY,
-				start + spread * i, this->stats.bulletSpeed, this->stats.damage,
+				start + spread * i, this->stats.bulletSpeed, damage,
 				this->stats.pierce, this->stats.bounce, this));
 	}
 
-	CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/shoot.ogg");
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect(this->fireSound.c_str());
 }
 
 void DefenseLayer::updateBullets(float dt) {
@@ -486,6 +529,7 @@ void DefenseLayer::resolveCollisions() {
 			float maxLife = zombie->maxLife;
 			zombie->remove();
 			delete zombie;
+			CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/splat.ogg");
 			this->onZombieKilled(maxLife);
 		} else {
 			liveZombies.push_back(zombie);

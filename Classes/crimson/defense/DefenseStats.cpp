@@ -15,6 +15,7 @@ DefenseStats::DefenseStats() {
 	this->bulletSpeed = 260.0f;
 	this->spreadDegrees = 11.0f;
 	this->enemySlow = 0.0f;
+	this->critChance = 0.0f;
 }
 
 DefenseCard::DefenseCard(Kind kind) {
@@ -52,6 +53,12 @@ void DefenseCard::apply(DefenseStats& stats) const {
 				stats.enemySlow = 0.5f;
 			}
 			break;
+		case CARD_CRIT:
+			stats.critChance += 0.12f;
+			if (stats.critChance > 0.75f) {
+				stats.critChance = 0.75f;
+			}
+			break;
 	}
 }
 
@@ -64,6 +71,7 @@ std::string DefenseCard::getName() const {
 		case CARD_POWER:     return Language::get("defense.card.power.name");
 		case CARD_VELOCITY:  return Language::get("defense.card.velocity.name");
 		case CARD_SLOW:      return Language::get("defense.card.slow.name");
+		case CARD_CRIT:      return Language::get("defense.card.crit.name");
 	}
 	return " ";
 }
@@ -77,6 +85,7 @@ std::string DefenseCard::getDetail() const {
 		case CARD_POWER:     return Language::get("defense.card.power.detail");
 		case CARD_VELOCITY:  return Language::get("defense.card.velocity.detail");
 		case CARD_SLOW:      return Language::get("defense.card.slow.detail");
+		case CARD_CRIT:      return Language::get("defense.card.crit.detail");
 	}
 	return " ";
 }
@@ -91,6 +100,7 @@ std::string DefenseCard::getImagePath() const {
 		case CARD_POWER:     return "equip/MEJORA_mochila_act.png";
 		case CARD_VELOCITY:  return "equip/MEJORA_velocidad_act.png";
 		case CARD_SLOW:      return "equip/MEJORA_congelar_act.png";
+		case CARD_CRIT:      return "equip/MEJORA_iman_act.png";
 	}
 	return "equip/MEJORA_balas_act.png";
 }
@@ -104,6 +114,7 @@ std::vector<DefenseCard> DefenseCard::draw(int count) {
 	pool.push_back(CARD_POWER);
 	pool.push_back(CARD_VELOCITY);
 	pool.push_back(CARD_SLOW);
+	pool.push_back(CARD_CRIT);
 
 	std::vector<DefenseCard> result;
 

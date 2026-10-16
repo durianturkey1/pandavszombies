@@ -51,6 +51,16 @@ std::string DefenseWeapon::getBulletImagePath() const {
 	}
 }
 
+std::string DefenseWeapon::getSoundPath() const {
+	switch (this->id) {
+		case WEAPON_SHOTGUN: return "sounds/shotgun2.ogg";
+		case WEAPON_RIFLE:   return "sounds/cannon.ogg";
+		case WEAPON_FLAMER:  return "sounds/flame2.ogg";
+		case WEAPON_BAZOOKA: return "sounds/bazooka.ogg";
+		default:             return "sounds/gun1.ogg";
+	}
+}
+
 int DefenseWeapon::getPrice() const {
 	switch (this->id) {
 		case WEAPON_PISTOL:  return 0;

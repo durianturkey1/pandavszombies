@@ -19,6 +19,7 @@ struct DefenseStats {
 	float bulletSpeed;    // points per second
 	float spreadDegrees;  // angle between projectiles in a volley
 	float enemySlow;      // 0..0.5, fraction shaved off zombie speed
+	float critChance;     // 0..1, chance a bullet lands for 2.5x
 
 	DefenseStats();
 };
@@ -36,7 +37,8 @@ public:
 		CARD_RAPID,
 		CARD_POWER,
 		CARD_VELOCITY,
-		CARD_SLOW
+		CARD_SLOW,
+		CARD_CRIT
 	};
 
 	DefenseCard(Kind kind);

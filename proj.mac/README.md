@@ -130,6 +130,11 @@ appearing at chapter 3, and every chapter ends on a boss wave. Cards live in
 `DefenseStats.cpp`; adding one means adding an enum value, its effect in
 `apply`, two strings and an icon.
 
+The store's **ATTACK** upgrade also scales defense damage (+50% per purchase).
+That is deliberate: a run's cards reset every chapter while chapter difficulty
+compounds, so without a permanent power source the later chapters cannot be
+beaten with any gun. It is the reason to keep spending coins.
+
 **Guns** (`DefenseWeapon`) are sold in the same store as the stat upgrades and
 appear first in the list. The first tap buys one, any tap after that equips it,
 and the equipped gun sets the starting stats for a defense run -- pistol, SMG,

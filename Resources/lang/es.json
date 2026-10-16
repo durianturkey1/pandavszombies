@@ -87,5 +87,7 @@
 "defense.chapters": "capitulos",
 "defense.locked": "supera el capitulo anterior",
 "defense.boss": "LLEGA EL JEFE",
-"defense.coins": "monedas"
+"defense.coins": "monedas",
+"defense.card.crit.name": "CRITICO",
+"defense.card.crit.detail": "12% de pegar 2.5x"
 }

@@ -76,6 +76,7 @@ private:
 	std::vector<std::string> zombieTypes;
 	std::string bulletImage;
 	std::string weaponName;
+	std::string fireSound;
 
 	DefenseStats stats;
 

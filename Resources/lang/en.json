@@ -87,5 +87,7 @@
 "defense.chapters": "chapters",
 "defense.locked": "clear the chapter before",
 "defense.boss": "BOSS INCOMING",
-"defense.coins": "coins"
+"defense.coins": "coins",
+"defense.card.crit.name": "CRIT",
+"defense.card.crit.detail": "12% chance to hit for 2.5x"
 }

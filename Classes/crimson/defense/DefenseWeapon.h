@@ -34,6 +34,7 @@ public:
 	std::string getDetail() const;
 	std::string getImagePath() const;
 	std::string getBulletImagePath() const;
+	std::string getSoundPath() const;
 	int getPrice() const;
 
 	bool isFree() const;

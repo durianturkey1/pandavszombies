@@ -18,10 +18,12 @@ public:
 
 	BuyPowerUpButton *button;
 	void applyPowerUp();
+	void removeNode(cocos2d::CCNode* node);
 
 	static std::vector<std::string> getMejoras();
 	float getMaxX();
 private:
+	void showMessage(std::string text);
 	bool isActivo();
 	int getCantidadDisponible();
 	std::string getImagePath();

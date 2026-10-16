@@ -22,6 +22,8 @@
 "equip.bonus.detail": "+2 bonus frecuencia de bonus",
 "equip.weapon.detail": "+1 duración del arma",
 "equip.attack.detail": "+10 aumento de ataque",
+"equip.nocoins": "monedas insuficientes",
+"equip.maxed": "mejora al maximo",
 "combo.1": "Bueno",
 "combo.2": "Excelente",
 "combo.3":  "Excepcional",

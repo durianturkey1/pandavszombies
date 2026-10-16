@@ -291,6 +291,47 @@ void EquipPandaItem::applyPowerUp() {
 
 	} else if (UserDAO::getCoins() < price) {
 		CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/cannotbuy.mp3");
+		this->showMessage(Language::get("equip.nocoins"));
+	} else {
+		// Owned outright, or every level of the upgrade already bought.
+		CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/cannotbuy.mp3");
+		this->showMessage(Language::get("equip.maxed"));
+	}
+}
+
+/**
+ * Briefly shows a message over the store. The sound effect alone gives no
+ * feedback at all if effects are muted or the reason isn't obvious.
+ */
+void EquipPandaItem::showMessage(std::string text) {
+	cocos2d::CCScene* scene = cocos2d::CCDirector::sharedDirector()->getRunningScene();
+
+	if (!scene) {
+		return;
+	}
+
+	cocos2d::CCSize visibleSize = cocos2d::CCDirector::sharedDirector()->getVisibleSize();
+	cocos2d::CCPoint origin = cocos2d::CCDirector::sharedDirector()->getVisibleOrigin();
+
+	cocos2d::CCLabelTTF* label = LabelUtil::create(text, 20, 0, 0, 0, 0, "fonts/KBStickToThePlan.ttf");
+	LabelUtil::setScaleByHeight(label, visibleSize.height * 0.07);
+	label->setAnchorPoint(ccp(0.5, 0.5));
+	label->setPositionX(origin.x + visibleSize.width / 2);
+	label->setPositionY(origin.y + visibleSize.height * 0.88);
+	label->setColor(cocos2d::ccc3(222, 36, 36));
+
+	scene->addChild(label, 1000);
+
+	label->runAction(cocos2d::CCSequence::create(
+			cocos2d::CCDelayTime::create(1.2f),
+			cocos2d::CCFadeOut::create(0.4f),
+			cocos2d::CCCallFuncN::create(this, (cocos2d::SEL_CallFuncN)(&EquipPandaItem::removeNode)),
+			NULL));
+}
+
+void EquipPandaItem::removeNode(cocos2d::CCNode* node) {
+	if (node) {
+		node->removeFromParentAndCleanup(true);
 	}
 }
 

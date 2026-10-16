@@ -22,6 +22,8 @@
 "equip.bonus.detail": "+2 bonus frequency increase",
 "equip.weapon.detail": "+1 weapon duration increase",
 "equip.attack.detail": "+10 attack increase",
+"equip.nocoins": "not enough coins",
+"equip.maxed": "fully upgraded",
 "combo.1": "Good",
 "combo.2": "Excellent",
 "combo.3":  "Outstanding",

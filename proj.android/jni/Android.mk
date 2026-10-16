@@ -104,6 +104,7 @@ LOCAL_SRC_FILES := hellocpp/main.cpp \
                    ../../Classes/crimson/buttons/RestartSurvivalButton.cpp \
                    ../../Classes/crimson/buttons/ResumeButton.cpp \
                    ../../Classes/crimson/buttons/ShareButton.cpp \
+                   ../../Classes/crimson/buttons/BackButton.cpp \
                    ../../Classes/crimson/layers/LevelFinishedLayer.cpp \
                    ../../Classes/crimson/layers/HintLayer.cpp \
                    ../../Classes/crimson/layers/EquipPandaLayer.cpp \

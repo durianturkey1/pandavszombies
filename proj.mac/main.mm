@@ -24,9 +24,13 @@ static const CGFloat kFrameWidth = 480;
 static const CGFloat kFrameHeight = 320;
 static const CGFloat kWindowZoom = 2.0;
 
+static const unsigned short kEscapeKeyCode = 53;
+
 @interface GameAppController : NSObject <NSApplicationDelegate>
 @property (nonatomic, retain) NSWindow *window;
 @property (nonatomic, retain) EAGLView *glView;
+@property (nonatomic, retain) id backKeyMonitor;
+@property (nonatomic, retain) id backClickMonitor;
 @end
 
 @implementation GameAppController
@@ -59,7 +63,69 @@ static const CGFloat kWindowZoom = 2.0;
     // and segfaults, so bring the context up before handing over to cocos2d.
     [[self.glView openGLContext] makeCurrentContext];
 
+    [self installMenuBar];
+    [self installBackGestures];
+
     cocos2d::CCApplication::sharedApplication()->run();
+}
+
+// Every screen in this game leaves through Android's hardware Back button:
+// AbstractMenuLayer::keyBackClicked pops the scene, and HelloWorld uses the same
+// key to toggle pause. A desktop has no such key, which strands you in the store,
+// the level picker, and mid-level with no way out. Map Escape and right-click
+// onto the same engine message so all of that navigation works here too.
+- (void)goBack
+{
+    cocos2d::CCDirector *director = cocos2d::CCDirector::sharedDirector();
+
+    // Nothing underneath means popScene would end the director and leave a dead
+    // window behind, so Back is a no-op at the root. Quit via Cmd+Q instead.
+    if (director->getSceneStackCount() <= 1) {
+        return;
+    }
+
+    director->getKeypadDispatcher()->dispatchKeypadMSG(cocos2d::kTypeBackClicked);
+}
+
+- (void)installBackGestures
+{
+    GameAppController * __block controller = self;
+
+    self.backKeyMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                                                handler:^NSEvent *(NSEvent *event) {
+        if ([event keyCode] == kEscapeKeyCode) {
+            [controller goBack];
+            return nil;  // swallow it, or AppKit beeps
+        }
+        return event;
+    }];
+
+    self.backClickMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskRightMouseDown
+                                                                  handler:^NSEvent *(NSEvent *event) {
+        [controller goBack];
+        return nil;
+    }];
+}
+
+// Programmatic startup means there is no menu bar, and without one the standard
+// Cmd+Q never reaches the app.
+- (void)installMenuBar
+{
+    NSMenu *menuBar = [[[NSMenu alloc] init] autorelease];
+    NSMenuItem *appMenuItem = [[[NSMenuItem alloc] init] autorelease];
+    [menuBar addItem:appMenuItem];
+
+    NSMenu *appMenu = [[[NSMenu alloc] init] autorelease];
+    [appMenu addItemWithTitle:@"Hide Panda vs Zombies"
+                       action:@selector(hide:)
+                keyEquivalent:@"h"];
+    [appMenu addItem:[NSMenuItem separatorItem]];
+    [appMenu addItemWithTitle:@"Quit Panda vs Zombies"
+                       action:@selector(terminate:)
+                keyEquivalent:@"q"];
+    [appMenuItem setSubmenu:appMenu];
+
+    [NSApp setMainMenu:menuBar];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)application

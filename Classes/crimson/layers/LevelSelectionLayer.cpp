@@ -2,6 +2,7 @@
 #include "../../dxco/SpriteUtil.h"
 #include "../buttons/LevelButton.h"
 #include "../buttons/LevelScreenButton.h"
+#include "../buttons/BackButton.h"
 #include "../../dxco/StringUtil.h"
 #include "../../dxco/DB.h"
 #include "../../dxco/admob/AdmobHelper.h"
@@ -12,6 +13,7 @@ LevelSelectionLayer::LevelSelectionLayer() {
 	this->page = 0;
 	this->prev = NULL;
 	this->next = NULL;
+	this->backButton = NULL;
 	this->touchId = 999;
 }
 
@@ -92,6 +94,17 @@ bool LevelSelectionLayer::init() {
 		this->next = new LevelScreenButton(next, this->page + 1);
 		this->addChild(next);
 	}
+
+	// Visible way back to the main menu, since there is no hardware back key here.
+	cocos2d::CCPoint screenOrigin = cocos2d::CCDirector::sharedDirector()->getVisibleOrigin();
+
+	cocos2d::CCSprite* backSprite = SpriteUtil::create("buttons/menu_icon_button.png", 0, 0);
+	float backScale = (visibleSize.height * 0.14) / SpriteUtil::getHeight(backSprite);
+	backSprite->setScale(backScale);
+	backSprite->setPositionX(screenOrigin.x + visibleSize.width - SpriteUtil::getWidth(backSprite) * 0.75);
+	backSprite->setPositionY(screenOrigin.y + visibleSize.height - SpriteUtil::getHeight(backSprite) * 0.75);
+	this->addChild(backSprite, 20);
+	this->backButton = new BackButton(backSprite);
 
 	this->setTouchEnabled(true);
 	return true;
@@ -177,6 +190,11 @@ void LevelSelectionLayer::ccTouchesEnded(cocos2d::CCSet *pTouches,
 			cocos2d::CCTouch* touch = (cocos2d::CCTouch*) (pTouches->anyObject());
 			cocos2d::CCPoint location = touch->getLocationInView();
 			location = cocos2d::CCDirector::sharedDirector()->convertToGL(location);
+
+			if (this->backButton->isTouched(location)) {
+				this->backButton->execute();
+				return;
+			}
 
 			for (int i=0; i < this->buttons.size(); i++) {
 				this->buttons[i]->touch(location);

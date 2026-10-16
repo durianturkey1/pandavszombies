@@ -4,6 +4,7 @@
 #include "cocos2d.h"
 
 #include "AbstractMenuLayer.h"
+#include "../../dxco/Button.h"
 
 #include <vector>
 #define CLICK_MAX_DELTA 4
@@ -31,6 +32,7 @@ public:
 	int touchId;
 	LevelScreenButton *prev;
 	LevelScreenButton *next;
+	ButtonDxCo *backButton;
 
 	cocos2d::CCPoint beginLocation;
 	cocos2d::CCPoint lastLocation;

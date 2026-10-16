@@ -693,3 +693,32 @@
  }
  
  
+--- a/cocos2dx/CCDirector.h
++++ b/cocos2dx/CCDirector.h
+@@ -241,6 +241,12 @@
+      * ONLY call it if there is a running scene.
+      */
+     void popScene(void);
++
++    /** Number of scenes on the stack, so callers can tell whether a "back"
++     * action has anywhere to go before calling popScene (which ends the
++     * director when the stack runs empty).
++     */
++    unsigned int getSceneStackCount(void) const;
+ 
+     /** Pops out all scenes from the queue until the root scene in the queue.
+      * This scene will replace the running one.
+--- a/cocos2dx/CCDirector.cpp
++++ b/cocos2dx/CCDirector.cpp
+@@ -632,6 +632,11 @@
+     m_pNextScene = pScene;
+ }
+ 
++unsigned int CCDirector::getSceneStackCount(void) const
++{
++    return m_pobScenesStack ? m_pobScenesStack->count() : 0;
++}
++
+ void CCDirector::popScene(void)
+ {
+     CCAssert(m_pRunningScene != NULL, "running scene should not null");

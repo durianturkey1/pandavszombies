@@ -6,6 +6,7 @@
 #include "cocos2d.h"
 #include "EquipPandaItem.h"
 #include "AbstractMenuLayer.h"
+#include "../../dxco/Button.h"
 
 #include <string>
 #include <vector>
@@ -34,6 +35,7 @@ public:
 	float maxX;
 
 	std::vector<EquipPandaItem*> items;
+	ButtonDxCo* backButton;
 
 	void addSkills(float skillsPandaX, float skillsPandaY, float skillsPandaWidth, float skillsPandaHeight);
 	void addSkill(float skillsPandaX, float skillsPandaY, float skillsPandaWidth, float skillsPandaHeight, std::string skillName, int skillValue, int index);

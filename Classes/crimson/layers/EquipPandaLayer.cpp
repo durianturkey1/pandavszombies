@@ -11,6 +11,7 @@
 #include "../GameProperties.h"
 #include "../daos/UserDAO.h"
 #include "../buttons/BuyPowerUpButton.h"
+#include "../buttons/BackButton.h"
 
 #include "./GameTypeSelectionLayer.h"
 #include "../SoundUtil.h"
@@ -81,6 +82,15 @@ bool EquipPandaLayer::init() {
 
 	this->addChild(spriteGetCoinsButton);
 	spriteGetCoinsButton->setVisible(false);
+
+	// Visible way out of the store: Android had the hardware back key for this.
+	cocos2d::CCSprite* backSprite = SpriteUtil::create("buttons/menu_icon_button.png", 0, 0, skillsPanda);
+	float backScale = (skillsPandaWidth * 0.26) / SpriteUtil::getHeight(backSprite);
+	backSprite->setScale(backSprite->getScaleY() * backScale);
+	backSprite->setPositionX(visibleSize.width - SpriteUtil::getWidth(backSprite) / 2 - xMargin + origin.x);
+	backSprite->setPositionY(spriteCoins->getPositionY());
+	this->addChild(backSprite, 20);
+	this->backButton = new BackButton(backSprite);
 
 	this->setTouchEnabled(true);
 	this->setKeypadEnabled(true);
@@ -280,11 +290,24 @@ void EquipPandaLayer::ccTouchesEnded(cocos2d::CCSet *pTouches,
 		}
 
 		if (delta < CLICK_MAX_DELTA) {
+			if (this->backButton->isTouched(location)) {
+				this->backButton->execute();
+				return;
+			}
+
 			for (int i = 0; i < this->items.size(); i++) {
 				//update coordinates so it works with the button inside the item
 				cocos2d::CCPoint fixedLocation(location.x - this->items[i]->getPositionX(),
 						location.y - this->items[i]->getPositionY());
-				this->items[i]->button->touch(fixedLocation);
+
+				// Stop at the first hit. The buy buttons sit at the same local
+				// offset in every item and their boxes are wider than the gap
+				// between items, so running the whole loop let a single click
+				// buy several upgrades at once.
+				if (this->items[i]->button->isTouched(fixedLocation)) {
+					this->items[i]->button->execute();
+					return;
+				}
 			}
 		} else {
 			if (location.x - beginLocation.x > 0) {

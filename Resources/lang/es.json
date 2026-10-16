@@ -48,6 +48,26 @@
 "hint.playanother": "ayuda: juega el modo survival para juntar monedas y comprar mejoras en equip panda",
 "hint.powerup": "ayuda: mejora tus habilidades en equip panda para aguantar a los zombies fuertes",
 "hint.superboss": "ayuda: desbloquea las bolas de fuego para vencer a los superboss",
-"hint.frenzy": "ayuda: desbloquea la bazooka y el lanzallamas para mejorar tus chances de ganar"
-
+"hint.frenzy": "ayuda: desbloquea la bazooka y el lanzallamas para mejorar tus chances de ganar",
+"defense.chapter": "capitulo",
+"defense.wave": "oleada",
+"defense.level": "niv",
+"defense.levelup": "subiste de nivel! elegi una carta",
+"defense.wavecleared": "oleada superada",
+"defense.cleared": "capitulo superado!",
+"defense.failed": "pasaron la reja!",
+"defense.card.multishot.name": "MULTIDISPARO",
+"defense.card.multishot.detail": "+1 bala por disparo",
+"defense.card.pierce.name": "PERFORANTE",
+"defense.card.pierce.detail": "las balas atraviesan +1 zombie",
+"defense.card.bounce.name": "REBOTE",
+"defense.card.bounce.detail": "las balas rebotan +1 vez",
+"defense.card.rapid.name": "RAPIDO",
+"defense.card.rapid.detail": "disparas 20% mas rapido",
+"defense.card.power.name": "POTENCIA",
+"defense.card.power.detail": "+30% de dano",
+"defense.card.velocity.name": "VELOCIDAD",
+"defense.card.velocity.detail": "+20% velocidad de bala",
+"defense.card.slow.name": "CONGELAR",
+"defense.card.slow.detail": "los zombies caminan 10% mas lento"
 }

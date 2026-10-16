@@ -6,6 +6,7 @@
 #include "../buttons/SurvivalButton.h"
 #include "../buttons/StoryButton.h"
 #include "../buttons/EquipPandaButton.h"
+#include "../buttons/DefenseButton.h"
 #include "AbstractMenuLayer.h"
 
 namespace dxco {
@@ -30,6 +31,7 @@ private:
 	SurvivalButton* frenzyButton;
 	StoryButton* storyButton;
 	EquipPandaButton* equipPandaButton;
+	DefenseButton* defenseButton;
 	bool fadeIn;
 	float dt;
 };

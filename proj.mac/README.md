@@ -30,10 +30,18 @@ open "proj.mac/build/Panda vs Zombies.app"
 Assets are symlinked into the app bundle, so changes under `Resources/` show up
 on the next launch without rebuilding.
 
-The window runs the engine at the game's native 480x320 landscape frame and
-scales it 2x for a desktop display (`kWindowZoom` in `main.mm`). Mouse input is
-translated back through that zoom, so the on-screen joysticks work by click and
-drag.
+The window is resizable and locked to the game's 3:2 aspect. The engine renders
+at the window's real pixel count (Retina included) while the screens keep their
+480x320 design resolution, letterboxed with `kResolutionShowAll` so nothing is
+ever cropped or pushed off-screen -- on a laptop window, a 16:9 Android phone or
+a 19.5:9 iPhone alike. Mouse input is converted from points to pixels, so the
+on-screen joysticks work by click and drag.
+
+Two things this fixes that were visibly wrong before: text and sprites were
+rendered at 480x320 and then stretched by the display (blurry), and because
+`AppDelegate` picks its asset scale from the *frame* size, a 480x320 frame chose
+the 1x bucket -- leaving every sprite that is sized in raw pixels about four
+times larger than on a phone, which is what pushed layouts off the right edge.
 
 ## What this port changes
 
@@ -90,6 +98,26 @@ GL context current before handing control to cocos2d: `EAGLView` only does that
 in `-prepareOpenGL`, which AppKit defers until the first draw, so
 `CCConfiguration::gatherGPUInfo` used to `strlen(NULL)` on `glGetString` and
 segfault at launch.
+
+## Defense mode
+
+`Classes/crimson/defense/` adds a third mode to the main menu, alongside the
+original Story and Survival levels, which are untouched.
+
+The panda holds the gate at the bottom of the lane and fires automatically at
+whichever zombie is closest to breaking through. Kills earn levels; each level
+pauses the action and offers three upgrade cards -- extra projectiles, bullets
+that pierce or bounce, faster fire, more damage, faster bullets, slower zombies.
+A chapter is a fixed set of waves: clear them all and the next chapter unlocks
+(stored under `defense.chapter`); let one zombie cross the gate and the run ends.
+
+Chapter difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,
+`getWaveSize`, `getZombieLife`, `getZombieSpeed`, `getSpawnInterval`) -- tune the
+curve there. Cards live in `DefenseStats.cpp`; adding one means adding an enum
+value, its effect in `apply`, two strings and an icon.
+
+The menu button reuses the unused `buttons/challenge_button.png` art, so it
+reads "challenge" on screen. Swap that file to rename the mode.
 
 ## Not ported
 

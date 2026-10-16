@@ -693,6 +693,63 @@
  }
  
  
+--- a/cocos2dx/platform/mac/EAGLView.mm
++++ b/cocos2dx/platform/mac/EAGLView.mm
+@@ -319,6 +319,18 @@
+ 
+ #pragma mark EAGLView - Mouse events
+ 
++// Added for the macOS port: the view can back a Retina drawable, in which case
++// the engine's frame size is in pixels while AppKit reports events in points.
++- (float) pointsToPixelsScale
++{
++	NSRect bounds = [self bounds];
++	if (bounds.size.width <= 0) {
++		return 1.0f;
++	}
++	NSRect backing = [self convertRectToBacking:bounds];
++	return backing.size.width / bounds.size.width;
++}
++
+ - (void)mouseDown:(NSEvent *)theEvent
+ {
+ 	NSPoint event_location = [theEvent locationInWindow];
+@@ -332,8 +344,9 @@
+     float ys[1] = {0.0f};
+     
+ 	ids[0] = [theEvent eventNumber];
+-	xs[0] = x / frameZoomFactor_;
+-	ys[0] = y / frameZoomFactor_;
++	float pointsToPixels = [self pointsToPixelsScale];
++	xs[0] = x * pointsToPixels / frameZoomFactor_;
++	ys[0] = y * pointsToPixels / frameZoomFactor_;
+ 
+ 	cocos2d::CCDirector::sharedDirector()->getOpenGLView()->handleTouchesBegin(1, ids, xs, ys);
+ }
+@@ -356,8 +369,9 @@
+     float ys[1] = {0.0f};
+     
+ 	ids[0] = [theEvent eventNumber];
+-	xs[0] = x / frameZoomFactor_;
+-	ys[0] = y / frameZoomFactor_;
++	float pointsToPixels = [self pointsToPixelsScale];
++	xs[0] = x * pointsToPixels / frameZoomFactor_;
++	ys[0] = y * pointsToPixels / frameZoomFactor_;
+ 
+ 	cocos2d::CCDirector::sharedDirector()->getOpenGLView()->handleTouchesMove(1, ids, xs, ys);
+ }
+@@ -375,8 +389,9 @@
+     float ys[1] = {0.0f};
+     
+ 	ids[0] = [theEvent eventNumber];
+-	xs[0] = x / frameZoomFactor_;
+-	ys[0] = y / frameZoomFactor_;
++	float pointsToPixels = [self pointsToPixelsScale];
++	xs[0] = x * pointsToPixels / frameZoomFactor_;
++	ys[0] = y * pointsToPixels / frameZoomFactor_;
+ 
+ 	cocos2d::CCDirector::sharedDirector()->getOpenGLView()->handleTouchesEnd(1, ids, xs, ys);
+ }
 --- a/cocos2dx/CCDirector.h
 +++ b/cocos2dx/CCDirector.h
 @@ -241,6 +241,12 @@

@@ -51,12 +51,15 @@ bool AppDelegate::applicationDidFinishLaunching() {
     pDirector->setOpenGLView(pEGLView);
 	CCSize frameSize = pEGLView->getFrameSize();
 
-    // Set the design resolution
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_WINRT) || (CC_TARGET_PLATFORM == CC_PLATFORM_WP8)
+    // Set the design resolution.
+    //
+    // kResolutionNoBorder fills the screen by cropping whatever does not fit,
+    // which on anything that is not 3:2 (most phones, any resized desktop
+    // window) silently pushes the edges of each layout off screen -- the level
+    // picker and the store run right out of view. ShowAll letterboxes instead,
+    // so getVisibleSize() always matches the design size the screens were laid
+    // out against and nothing is ever cut off, on any device.
     pEGLView->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, kResolutionShowAll);
-#else
-    pEGLView->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, kResolutionNoBorder);
-#endif
 
     vector<string> searchPath;
 

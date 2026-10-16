@@ -105,6 +105,11 @@ LOCAL_SRC_FILES := hellocpp/main.cpp \
                    ../../Classes/crimson/buttons/ResumeButton.cpp \
                    ../../Classes/crimson/buttons/ShareButton.cpp \
                    ../../Classes/crimson/buttons/BackButton.cpp \
+                   ../../Classes/crimson/buttons/DefenseButton.cpp \
+                   ../../Classes/crimson/defense/DefenseStats.cpp \
+                   ../../Classes/crimson/defense/DefenseZombie.cpp \
+                   ../../Classes/crimson/defense/DefenseBullet.cpp \
+                   ../../Classes/crimson/defense/DefenseLayer.cpp \
                    ../../Classes/crimson/layers/LevelFinishedLayer.cpp \
                    ../../Classes/crimson/layers/HintLayer.cpp \
                    ../../Classes/crimson/layers/EquipPandaLayer.cpp \

@@ -52,6 +52,10 @@ DefenseLayer::DefenseLayer() {
 	this->level = 1;
 	this->kills = 0;
 	this->killsForNextLevel = 6;
+	this->coinsEarned = 0;
+	this->coinsLabel = NULL;
+	this->xpBar = NULL;
+	this->xpBarWidth = 0;
 }
 
 cocos2d::CCScene* DefenseLayer::scene(int chapter) {
@@ -185,6 +189,32 @@ void DefenseLayer::buildHud() {
 	LabelUtil::setScaleByHeight(this->messageLabel, this->visibleHeight * 0.085f);
 	this->addChild(this->messageLabel, 80);
 
+	// Coins earned this run, so the reward for pushing one wave further is
+	// visible while you play rather than only on the results screen.
+	this->coinsLabel = LabelUtil::create(" ", 18, 0, 0, 0, 0, DEFENSE_FONT);
+	this->coinsLabel->setAnchorPoint(ccp(0, 0.5));
+	this->coinsLabel->setPositionX(this->originX + this->visibleWidth * 0.03f);
+	this->coinsLabel->setPositionY(top - this->visibleHeight * 0.06f);
+	this->coinsLabel->setColor(cocos2d::ccc3(255, 214, 80));
+	LabelUtil::setScaleByHeight(this->coinsLabel, this->visibleHeight * 0.042f);
+	this->addChild(this->coinsLabel, 60);
+
+	// Progress towards the next card.
+	this->xpBarWidth = this->visibleWidth * 0.34f;
+	float barHeight = this->visibleHeight * 0.016f;
+	float barX = this->originX + (this->visibleWidth - this->xpBarWidth) / 2;
+	float barY = top - this->visibleHeight * 0.055f;
+
+	cocos2d::CCLayerColor* xpBack = cocos2d::CCLayerColor::create(
+			cocos2d::ccc4(0, 0, 0, 120), this->xpBarWidth, barHeight);
+	xpBack->setPosition(ccp(barX, barY));
+	this->addChild(xpBack, 59);
+
+	this->xpBar = cocos2d::CCLayerColor::create(
+			cocos2d::ccc4(120, 220, 120, 220), 1, barHeight);
+	this->xpBar->setPosition(ccp(barX, barY));
+	this->addChild(this->xpBar, 60);
+
 	this->refreshHud();
 }
 
@@ -194,6 +224,17 @@ void DefenseLayer::refreshHud() {
 	this->waveLabel->setString((Language::get("defense.wave") + " "
 			+ StringUtil::toString(this->wave) + "/"
 			+ StringUtil::toString(this->getWaveCount())).c_str());
+	this->coinsLabel->setString((Language::get("defense.coins") + " "
+			+ StringUtil::toString(this->coinsEarned)).c_str());
+
+	if (this->xpBar) {
+		float ratio = (float) this->kills / (float) this->killsForNextLevel;
+		if (ratio > 1.0f) { ratio = 1.0f; }
+		float width = this->xpBarWidth * ratio;
+		if (width < 1.0f) { width = 1.0f; }
+		this->xpBar->setContentSize(cocos2d::CCSize(width, this->xpBar->getContentSize().height));
+	}
+
 	this->levelLabel->setString((this->weaponName + "  "
 			+ Language::get("defense.level") + " "
 			+ StringUtil::toString(this->level)).c_str());
@@ -442,9 +483,10 @@ void DefenseLayer::resolveCollisions() {
 		DefenseZombie* zombie = this->zombies[i];
 
 		if (zombie->isDead()) {
+			float maxLife = zombie->maxLife;
 			zombie->remove();
 			delete zombie;
-			this->onZombieKilled();
+			this->onZombieKilled(maxLife);
 		} else {
 			liveZombies.push_back(zombie);
 		}
@@ -453,12 +495,24 @@ void DefenseLayer::resolveCollisions() {
 	this->zombies = liveZombies;
 }
 
-void DefenseLayer::onZombieKilled() {
+void DefenseLayer::onZombieKilled(float maxLife) {
 	this->kills++;
+
+	// Pay out by how tough the zombie was, so elites and bosses are worth
+	// chasing and the store is reachable by playing defense alone.
+	float base = this->getZombieLife(this->wave);
+	int reward = 1 + (int) (maxLife / (base > 0 ? base : 1.0f));
+	this->coinsEarned += reward;
 
 	if (this->kills >= this->killsForNextLevel) {
 		this->levelUp();
+	} else {
+		this->refreshHud();
 	}
+}
+
+int DefenseLayer::getChapterReward() {
+	return 150 + 120 * this->chapter;
 }
 
 // ---------------------------------------------------------------------------
@@ -549,8 +603,12 @@ void DefenseLayer::chooseCard(int index) {
 void DefenseLayer::finish(bool won) {
 	this->state = FINISHED;
 
+	int payout = this->coinsEarned;
+
 	if (won) {
-		this->messageLabel->setString(Language::get("defense.cleared").c_str());
+		payout += this->getChapterReward();
+		this->messageLabel->setString((Language::get("defense.cleared") + " +"
+				+ StringUtil::toString(payout)).c_str());
 		this->messageLabel->setColor(cocos2d::ccc3(120, 230, 120));
 
 		// Unlock the next chapter, without ever walking progress backwards.
@@ -558,15 +616,25 @@ void DefenseLayer::finish(bool won) {
 			DB::putInteger(DEFENSE_CHAPTER_KEY, this->chapter + 1);
 		}
 	} else {
-		this->messageLabel->setString(Language::get("defense.failed").c_str());
+		// Keep what was earned even on a loss: a run is never wasted time.
+		this->messageLabel->setString((Language::get("defense.failed") + " +"
+				+ StringUtil::toString(payout)).c_str());
 		this->messageLabel->setColor(cocos2d::ccc3(240, 90, 90));
 	}
+
+	UserDAO::addCoins(payout);
 
 	// Let the player read the result, then drop back to the menu.
 	this->runAction(cocos2d::CCSequence::create(
 			cocos2d::CCDelayTime::create(2.5f),
 			cocos2d::CCCallFunc::create(this, (cocos2d::SEL_CallFunc)(&DefenseLayer::goToMenu)),
 			NULL));
+}
+
+// The chapter was entered with replaceScene, so the default "pop the scene"
+// would drop out to the main menu. Go back to the chapter list instead.
+void DefenseLayer::keyBackClicked() {
+	this->goToMenu();
 }
 
 void DefenseLayer::clearMessage() {

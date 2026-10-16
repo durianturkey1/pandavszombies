@@ -90,7 +90,14 @@ Engine fixes live in `patches/cocos2d-x-2.2.6-macos.patch`, applied by
    families, so every label silently fell back to the system font. Now
    registered with CoreText and resolved by PostScript name.
 
-Fixes 4 and 5 are what make the HUD and hint text legible.
+6. **Word wrapping split words mid-word.** The Mac text path appended
+   characters one at a time and inserted a break the moment a line overflowed,
+   producing "bullets bounce o / ff wall / s". AppKit now does the wrapping.
+7. **Mouse input ignored Retina.** Events arrive in points while the engine's
+   frame is in pixels, so clicks landed at half their apparent position once the
+   view backs a Retina drawable.
+
+Fixes 4, 5 and 6 are what make the HUD, cards and hint text legible.
 
 `main.mm` replaces the stock `NSApplicationMain` + `MainMenu.xib` startup (xib
 compilation needs Xcode's `ibtool`) with a programmatic one. It also makes the
@@ -110,6 +117,9 @@ pauses the action and offers three upgrade cards -- extra projectiles, bullets
 that pierce or bounce, faster fire, more damage, faster bullets, slower zombies.
 A chapter is a fixed set of waves: clear them all and the next chapter unlocks
 (stored under `defense.chapter`); let one zombie cross the gate and the run ends.
+Kills pay coins scaled by how tough the zombie was, and clearing a chapter pays
+a bonus, so defense funds the store on its own -- you keep what you earned even
+on a loss.
 
 There are 12 chapters, picked from a grid that only opens the ones you have
 cleared. Difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,

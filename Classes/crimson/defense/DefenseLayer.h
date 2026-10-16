@@ -29,6 +29,7 @@ public:
 
 	void update(float dt);
 	void ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pEvent);
+	void keyBackClicked();
 
 	int chapter;
 
@@ -46,8 +47,9 @@ private:
 	void updateShooting(float dt);
 	void updateBullets(float dt);
 	void resolveCollisions();
-	void onZombieKilled();
+	void onZombieKilled(float maxLife);
 	void refreshHud();
+	int getChapterReward();
 
 	// flow
 	void startWave(int wave);
@@ -82,6 +84,9 @@ private:
 	cocos2d::CCLabelTTF* waveLabel;
 	cocos2d::CCLabelTTF* levelLabel;
 	cocos2d::CCLabelTTF* messageLabel;
+	cocos2d::CCLabelTTF* coinsLabel;
+	cocos2d::CCLayerColor* xpBar;
+	float xpBarWidth;
 
 	std::vector<DefenseCard> offered;
 	std::vector<cocos2d::CCSprite*> cardSprites;
@@ -103,6 +108,7 @@ private:
 	int level;
 	int kills;
 	int killsForNextLevel;
+	int coinsEarned;
 };
 
 } /* namespace dxco */

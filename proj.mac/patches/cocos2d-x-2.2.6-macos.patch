@@ -461,10 +461,11 @@
  #include "CCDirector.h"
  #include "ccMacros.h"
  #include "CCImage.h"
-@@ -336,23 +338,74 @@
+@@ -335,24 +337,75 @@
+     out:
      return ret;
  }
- 
++
 +// Cocos2d-x passes font names that are really resource paths ("fonts/Foo.ttf").
 +// The Mac backend only ever looked those up as installed font families, so every
 +// custom font silently fell back to the system default. Register the file with
@@ -480,7 +481,7 @@
 +    if ([[name pathExtension] length] == 0) {
 +        return nil;
 +    }
-+
+ 
 +    NSString *postScriptName = [registered objectForKey:name];
 +
 +    if (postScriptName == nil) {
@@ -541,10 +542,65 @@
  		if (font == nil) {
  			font = [[NSFontManager sharedFontManager]
  					fontWithFamily:@"Arial"
-@@ -450,27 +503,42 @@
+@@ -380,7 +433,7 @@
+ 		
+ 		NSMutableParagraphStyle *paragraphStyle = [[[NSMutableParagraphStyle alloc] init] autorelease];
+ 		[paragraphStyle setParagraphStyle:[NSParagraphStyle defaultParagraphStyle]];
+-		[paragraphStyle setLineBreakMode:NSLineBreakByCharWrapping];
++		[paragraphStyle setLineBreakMode:NSLineBreakByWordWrapping];
+ 		[paragraphStyle setAlignment:align];
+ 
+ 		// attribute
+@@ -389,32 +442,22 @@
+ 											 font, NSFontAttributeName,
+ 											 paragraphStyle, NSParagraphStyleAttributeName, nil];
+ 
+-		// linebreak
+-		if (pInfo->width > 0) {
+-			if ([string sizeWithAttributes:tokenAttributesDict].width > pInfo->width) {
+-				NSMutableString *lineBreak = [[[NSMutableString alloc] init] autorelease];
+-				NSUInteger length = [string length];
+-				NSRange range = NSMakeRange(0, 1);
+-				NSUInteger width = 0;
+-				NSUInteger lastBreakLocation = 0;
+-				for (NSUInteger i = 0; i < length; i++) {
+-					range.location = i;
+-					NSString *character = [string substringWithRange:range];
+-					[lineBreak appendString:character];
+-					if ([@"!?.,-= " rangeOfString:character].location != NSNotFound) { lastBreakLocation = i; }
+-					width = [lineBreak sizeWithAttributes:tokenAttributesDict].width;
+-					if (width > pInfo->width) {
+-						[lineBreak insertString:@"\r\n" atIndex:(lastBreakLocation > 0) ? lastBreakLocation : [lineBreak length] - 1];
+-					}
+-				}
+-				string = lineBreak;
+-			}
+-		}
++		// Line breaking is left to AppKit: the hand-rolled loop that used to live
++		// here appended characters one at a time and inserted a break as soon as
++		// the line overflowed, which split words in the middle
++		// ("bullets bounce o / ff wall / s +1 time").
+ 
+ 		NSAttributedString *stringWithAttributes =[[[NSAttributedString alloc] initWithString:string
+ 										 attributes:tokenAttributesDict] autorelease];
+ 				
+-		NSSize realDimensions = [stringWithAttributes size];
++		NSSize realDimensions;
++		if (pInfo->width > 0) {
++			NSRect wrapped = [stringWithAttributes boundingRectWithSize:NSMakeSize(pInfo->width, CGFLOAT_MAX)
++															   options:NSStringDrawingUsesLineFragmentOrigin];
++			realDimensions = NSMakeSize(ceil(wrapped.size.width), ceil(wrapped.size.height));
++		} else {
++			realDimensions = [stringWithAttributes size];
++		}
+ 		// Mac crashes if the width or height is 0
+ 		CC_BREAK_IF(realDimensions.width <= 0 || realDimensions.height <= 0);
+ 				
+@@ -449,28 +492,45 @@
+ 		: (dimensions.height - realDimensions.height) / 2.0f;									// align to center
  		
  		
- 		NSRect textRect = NSMakeRect(xPadding, POTHigh - dimensions.height + yPadding, realDimensions.width, realDimensions.height);
+-		NSRect textRect = NSMakeRect(xPadding, POTHigh - dimensions.height + yPadding, realDimensions.width, realDimensions.height);
 -		//Disable antialias
 -		
 -		[[NSGraphicsContext currentContext] setShouldAntialias:NO];	
@@ -564,6 +620,9 @@
 -		
 -		data = (unsigned char*) [bitmap bitmapData];  //Use the same buffer to improve the performance.
 -		
++		float textWidth = (pInfo->width > 0) ? dimensions.width : realDimensions.width;
++		float textX = (pInfo->width > 0) ? 0 : xPadding;
++		NSRect textRect = NSMakeRect(textX, POTHigh - dimensions.height + yPadding, textWidth, realDimensions.height);
 +
 +		// This used to render through -[NSImage lockFocus] and then grab the
 +		// result with -initWithFocusedViewRect:. On a Retina display that hands
@@ -604,7 +663,7 @@
  		unsigned char* dataNew = new unsigned char[textureSize];
  		if (dataNew) {
  			memcpy(dataNew, data, textureSize);
-@@ -484,7 +552,6 @@
+@@ -484,7 +544,6 @@
  			bRet = true;
  		}
  		[bitmap release];
@@ -612,7 +671,7 @@
  	} while (0);
      return bRet;
  }
-@@ -913,10 +980,78 @@
+@@ -913,10 +972,78 @@
      return true;
  }
  

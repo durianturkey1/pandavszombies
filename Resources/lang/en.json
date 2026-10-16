@@ -86,5 +86,6 @@
 "weapon.bazooka.detail": "huge damage, pierces 2 zombies",
 "defense.chapters": "chapters",
 "defense.locked": "clear the chapter before",
-"defense.boss": "BOSS INCOMING"
+"defense.boss": "BOSS INCOMING",
+"defense.coins": "coins"
 }

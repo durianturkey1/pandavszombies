@@ -30,6 +30,29 @@ DefenseZombie::DefenseZombie(std::string type, float x, float y, float speed, fl
 				type + "_" + dir + "_" + StringUtil::padLeft(i, 4) + ".png"));
 	}
 
+	// Anything tougher than a basic zombie carries a health bar, so a boss
+	// reads as "keep shooting" instead of "nothing is happening".
+	this->healthBar = NULL;
+	this->healthBarWidth = ZOMBIE_SIZE * scale * 0.7f;
+
+	if (scale > 1.05f) {
+		cocos2d::CCLayerColor* back = cocos2d::CCLayerColor::create(
+				cocos2d::ccc4(0, 0, 0, 150), this->healthBarWidth, 4);
+		back->ignoreAnchorPointForPosition(false);
+		back->setAnchorPoint(ccp(0.5, 0.5));
+		parent->addChild(back, 21);
+
+		this->healthBar = cocos2d::CCLayerColor::create(
+				cocos2d::ccc4(230, 70, 70, 230), this->healthBarWidth, 4);
+		this->healthBar->ignoreAnchorPointForPosition(false);
+		this->healthBar->setAnchorPoint(ccp(0, 0.5));
+		parent->addChild(this->healthBar, 22);
+
+		this->healthBarBack = back;
+	} else {
+		this->healthBarBack = NULL;
+	}
+
 	this->walk = new Animation(frames, 0.05f);
 	this->life = life;
 	this->maxLife = life;
@@ -46,6 +69,17 @@ void DefenseZombie::update(float dt, float slowFactor) {
 
 	float moved = this->speed * (1.0f - slowFactor) * dt;
 	this->sprite->setPositionY(this->sprite->getPositionY() - moved);
+
+	if (this->healthBar) {
+		float barY = this->sprite->getPositionY()
+				+ SpriteUtil::getHeight(this->sprite) * 0.55f;
+		float ratio = (this->maxLife > 0) ? this->life / this->maxLife : 0;
+		if (ratio < 0) { ratio = 0; }
+
+		this->healthBarBack->setPosition(ccp(this->sprite->getPositionX(), barY));
+		this->healthBar->setPosition(ccp(this->sprite->getPositionX() - this->healthBarWidth / 2, barY));
+		this->healthBar->setContentSize(cocos2d::CCSize(this->healthBarWidth * ratio, 4));
+	}
 }
 
 void DefenseZombie::hurt(float damage) {
@@ -66,6 +100,16 @@ bool DefenseZombie::isDead() {
 }
 
 void DefenseZombie::remove() {
+	if (this->healthBar) {
+		this->healthBar->removeFromParentAndCleanup(true);
+		this->healthBar = NULL;
+	}
+
+	if (this->healthBarBack) {
+		this->healthBarBack->removeFromParentAndCleanup(true);
+		this->healthBarBack = NULL;
+	}
+
 	if (this->sprite) {
 		this->sprite->removeFromParentAndCleanup(true);
 		this->sprite = NULL;

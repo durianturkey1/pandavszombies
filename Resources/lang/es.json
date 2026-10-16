@@ -86,5 +86,6 @@
 "weapon.bazooka.detail": "dano enorme, atraviesa 2",
 "defense.chapters": "capitulos",
 "defense.locked": "supera el capitulo anterior",
-"defense.boss": "LLEGA EL JEFE"
+"defense.boss": "LLEGA EL JEFE",
+"defense.coins": "monedas"
 }

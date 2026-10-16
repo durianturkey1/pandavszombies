@@ -30,6 +30,9 @@ public:
 	float getRadius();
 
 	cocos2d::CCSprite* sprite;
+	cocos2d::CCLayerColor* healthBar;
+	cocos2d::CCLayerColor* healthBarBack;
+	float healthBarWidth;
 	Animation* walk;
 	float life;
 	float maxLife;

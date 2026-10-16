@@ -10,10 +10,10 @@ namespace dxco {
 
 #define BULLET_SIZE 10
 
-DefenseBullet::DefenseBullet(float x, float y, float angleDegrees, float speed, float damage,
-		int pierce, int bounce, cocos2d::CCNode* parent) {
+DefenseBullet::DefenseBullet(const std::string& image, float x, float y, float angleDegrees,
+		float speed, float damage, int pierce, int bounce, cocos2d::CCNode* parent) {
 
-	this->sprite = SpriteUtil::create("bullet.png", 0, 0, BULLET_SIZE, BULLET_SIZE);
+	this->sprite = SpriteUtil::create(image, 0, 0, BULLET_SIZE, BULLET_SIZE);
 	SpriteUtil::moveToAbsolute(this->sprite, x, y);
 	parent->addChild(this->sprite, 25);
 

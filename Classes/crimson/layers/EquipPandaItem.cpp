@@ -8,6 +8,7 @@
 #include "../GameProperties.h"
 #include "../daos/UserDAO.h"
 #include "../buttons/BuyPowerUpButton.h"
+#include "../defense/DefenseWeapon.h"
 #include "cocos2d.h"
 #include "SimpleAudioEngine.h"
 
@@ -82,7 +83,8 @@ EquipPandaItem::EquipPandaItem(std::string item, float x, float y, float width,
 
 	this->addChild(coinsLabel);
 
-	if (!(this->item == "bazooka.unlocked" ||this->item == "fire.unlocked" || this->item == "firebullet.unlocked" || this->item == "frenzy.unlocked")) {
+	if (!(this->item == "bazooka.unlocked" ||this->item == "fire.unlocked" || this->item == "firebullet.unlocked" || this->item == "frenzy.unlocked"
+			|| DefenseWeapon::isWeaponKey(this->item))) {
 		std::string cantidadStr = StringUtil::toString(
 				this->getCantidadDisponible());
 
@@ -121,6 +123,10 @@ int EquipPandaItem::getCantidadDisponible() {
 
 	int result = 5;
 
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		return DefenseWeapon::fromKey(this->item).isUnlocked() ? 0 : 1;
+	}
+
 	if (this->item == "bazooka.unlocked" || this->item == "fire.unlocked" || this->item == "firebullet.unlocked" || this->item == "frenzy.unlocked") {
 		if (GameProperties::get(this->item)) {
 			result = 0;
@@ -150,12 +156,19 @@ std::vector<std::string> EquipPandaItem::getMejoras() {
 
 	std::vector<std::string> mejoras;
 
+	// Guns for defense mode come first: they are bought once here and then
+	// equipped by tapping again, and they change the game far more than a
+	// single stat point does.
+	std::vector<std::string> weapons = DefenseWeapon::getStoreKeys();
+	for (int i = 0; i < (int) weapons.size(); i++) {
+		mejoras.push_back(weapons[i]);
+	}
+
 	mejoras.push_back("attack.damage");
 	mejoras.push_back("player.life");
 	mejoras.push_back("bonus.probability");
 	mejoras.push_back("weapon.duration");
 	mejoras.push_back("player.speed");
-
 
 	mejoras.push_back("firebullet.unlocked");
 	mejoras.push_back("bazooka.unlocked");
@@ -166,6 +179,12 @@ std::vector<std::string> EquipPandaItem::getMejoras() {
 }
 
 std::string EquipPandaItem::getBuyImagePath() {
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		// Owned-but-not-equipped guns stay tappable, so keep the live button.
+		return DefenseWeapon::fromKey(this->item).isEquipped()
+				? "buttons/buy-inactivo.png" : "buttons/buy.png";
+	}
+
 	if (this->isActivo()) {
 		return "buttons/buy.png";
 	}
@@ -175,6 +194,10 @@ std::string EquipPandaItem::getBuyImagePath() {
 
 
 std::string EquipPandaItem::getImagePath() {
+
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		return DefenseWeapon::fromKey(this->item).getImagePath();
+	}
 
 	std::string result = "equip/MEJORA_";
 
@@ -211,6 +234,10 @@ std::string EquipPandaItem::getImagePath() {
 
 std::string EquipPandaItem::getName() {
 
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		return DefenseWeapon::fromKey(this->item).getName();
+	}
+
 	if (this->item == "bazooka.unlocked") {
 		return Language::get("equip.bazooka.name");
 	} else if (this->item == "fire.unlocked") {
@@ -235,6 +262,18 @@ std::string EquipPandaItem::getName() {
 }
 
 std::string EquipPandaItem::getDetail() {
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		DefenseWeapon weapon = DefenseWeapon::fromKey(this->item);
+
+		if (weapon.isEquipped()) {
+			return Language::get("weapon.equipped");
+		}
+		if (weapon.isUnlocked()) {
+			return Language::get("weapon.owned");
+		}
+		return weapon.getDetail();
+	}
+
 	if (this->item == "bazooka.unlocked") {
 		return Language::get("equip.bazooka.detail");
 	} else if (this->item == "fire.unlocked") {
@@ -262,6 +301,10 @@ float EquipPandaItem::getMaxX() {
 }
 
 int EquipPandaItem::getPrice() {
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		return DefenseWeapon::fromKey(this->item).getPrice();
+	}
+
 	return GameProperties::getPrice(this->item);
 }
 
@@ -269,6 +312,11 @@ void EquipPandaItem::applyPowerUp() {
 
 	CCLOG("Upgrade item %s", this->item.c_str());
 	int price = this->getPrice();
+
+	if (DefenseWeapon::isWeaponKey(this->item)) {
+		this->applyWeapon();
+		return;
+	}
 
 	if (this->isActivo() && UserDAO::getCoins() >= price) {
 		CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/bonus.ogg");
@@ -297,6 +345,34 @@ void EquipPandaItem::applyPowerUp() {
 		CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/cannotbuy.mp3");
 		this->showMessage(Language::get("equip.maxed"));
 	}
+}
+
+/**
+ * Guns behave differently from the stat upgrades around them: the first tap
+ * buys one, and any tap after that simply equips it.
+ */
+void EquipPandaItem::applyWeapon() {
+	DefenseWeapon weapon = DefenseWeapon::fromKey(this->item);
+
+	if (!weapon.isUnlocked()) {
+		if (UserDAO::getCoins() < weapon.getPrice()) {
+			CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/cannotbuy.mp3");
+			this->showMessage(Language::get("equip.nocoins"));
+			return;
+		}
+
+		UserDAO::addCoins(-weapon.getPrice());
+		weapon.unlock();
+	}
+
+	weapon.equip();
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/bonus.ogg");
+	this->showMessage(weapon.getName() + " " + Language::get("weapon.equipped"));
+
+	// Rebuild the store so prices, badges and the equipped marker refresh.
+	cocos2d::CCDirector* pDirector = cocos2d::CCDirector::sharedDirector();
+	pDirector->popScene();
+	pDirector->pushScene(EquipPandaLayer::scene());
 }
 
 /**

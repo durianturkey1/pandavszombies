@@ -111,10 +111,21 @@ that pierce or bounce, faster fire, more damage, faster bullets, slower zombies.
 A chapter is a fixed set of waves: clear them all and the next chapter unlocks
 (stored under `defense.chapter`); let one zombie cross the gate and the run ends.
 
-Chapter difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,
-`getWaveSize`, `getZombieLife`, `getZombieSpeed`, `getSpawnInterval`) -- tune the
-curve there. Cards live in `DefenseStats.cpp`; adding one means adding an enum
-value, its effect in `apply`, two strings and an icon.
+There are 12 chapters, picked from a grid that only opens the ones you have
+cleared. Difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,
+`getWaveSize`, `getZombieLife`, `getZombieSpeed`, `getSpawnInterval`): waves get
+longer, zombie health compounds at 1.35x per chapter, spawns tighten, the zombie
+roster widens (new sprite sets at chapters 2, 4, 7 and 10), elites start
+appearing at chapter 3, and every chapter ends on a boss wave. Cards live in
+`DefenseStats.cpp`; adding one means adding an enum value, its effect in
+`apply`, two strings and an icon.
+
+**Guns** (`DefenseWeapon`) are sold in the same store as the stat upgrades and
+appear first in the list. The first tap buys one, any tap after that equips it,
+and the equipped gun sets the starting stats for a defense run -- pistol, SMG,
+shotgun, rifle, flamer, bazooka, each trading fire rate against damage and
+coverage. Level-up cards stack on top, so MULTISHOT is worth far more on a
+shotgun than on a rifle.
 
 The menu button reuses the unused `buttons/challenge_button.png` art, so it
 reads "challenge" on screen. Swap that file to rename the mode.

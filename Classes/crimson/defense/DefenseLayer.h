@@ -56,6 +56,7 @@ private:
 	void chooseCard(int index);
 	void finish(bool won);
 	void goToMenu();
+	void clearMessage();
 
 	// chapter plan
 	int getWaveCount();
@@ -63,12 +64,16 @@ private:
 	float getZombieLife(int wave);
 	float getZombieSpeed(int wave);
 	float getSpawnInterval(int wave);
+	bool isBossWave(int wave);
+	bool shouldSpawnElite();
 
 	State state;
 
 	std::vector<DefenseZombie*> zombies;
 	std::vector<DefenseBullet*> bullets;
 	std::vector<std::string> zombieTypes;
+	std::string bulletImage;
+	std::string weaponName;
 
 	DefenseStats stats;
 

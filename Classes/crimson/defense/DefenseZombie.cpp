@@ -12,14 +12,15 @@ namespace dxco {
 #define ZOMBIE_SIZE 46
 
 DefenseZombie::DefenseZombie(std::string type, float x, float y, float speed, float life,
-		cocos2d::CCNode* parent) {
+		float scale, cocos2d::CCNode* parent) {
 
 	std::string dir = StringUtil::toString(ZOMBIE_DOWN_DIRECTION);
 
 	// SpriteUtil::create places the bottom-left corner; everything here works in
 	// centres (collisions included), so position it explicitly afterwards.
+	this->scale = scale;
 	this->sprite = SpriteUtil::create(type + "_" + dir + "_0000.png", 0, 0,
-			ZOMBIE_SIZE, ZOMBIE_SIZE, true);
+			ZOMBIE_SIZE * scale, ZOMBIE_SIZE * scale, true);
 	SpriteUtil::moveToAbsolute(this->sprite, x, y);
 	parent->addChild(this->sprite, 20);
 
@@ -85,7 +86,7 @@ float DefenseZombie::getY() {
 }
 
 float DefenseZombie::getRadius() {
-	return ZOMBIE_SIZE * 0.32f;
+	return ZOMBIE_SIZE * this->scale * 0.32f;
 }
 
 } /* namespace dxco */

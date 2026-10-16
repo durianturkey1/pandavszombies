@@ -69,5 +69,22 @@
 "defense.card.velocity.name": "VELOCITY",
 "defense.card.velocity.detail": "+20% bullet speed",
 "defense.card.slow.name": "FREEZE",
-"defense.card.slow.detail": "zombies walk 10% slower"
+"defense.card.slow.detail": "zombies walk 10% slower",
+"weapon.equipped": "equipped",
+"weapon.owned": "tap to equip",
+"weapon.pistol.name": "PISTOL",
+"weapon.pistol.detail": "steady and reliable",
+"weapon.smg.name": "SMG",
+"weapon.smg.detail": "very fast, light damage",
+"weapon.shotgun.name": "SHOTGUN",
+"weapon.shotgun.detail": "4 pellets in a wide spread",
+"weapon.rifle.name": "RIFLE",
+"weapon.rifle.detail": "heavy, fast, pierces 1 zombie",
+"weapon.flamer.name": "FLAMER",
+"weapon.flamer.detail": "a constant stream of fire",
+"weapon.bazooka.name": "BAZOOKA",
+"weapon.bazooka.detail": "huge damage, pierces 2 zombies",
+"defense.chapters": "chapters",
+"defense.locked": "clear the chapter before",
+"defense.boss": "BOSS INCOMING"
 }

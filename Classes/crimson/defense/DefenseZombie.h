@@ -17,7 +17,8 @@ namespace dxco {
  */
 class DefenseZombie {
 public:
-	DefenseZombie(std::string type, float x, float y, float speed, float life, cocos2d::CCNode* parent);
+	DefenseZombie(std::string type, float x, float y, float speed, float life,
+			float scale, cocos2d::CCNode* parent);
 
 	void update(float dt, float slowFactor);
 	void hurt(float damage);
@@ -33,6 +34,7 @@ public:
 	float life;
 	float maxLife;
 	float speed;
+	float scale;
 	bool dead;
 };
 

@@ -18,6 +18,7 @@ public:
 
 	BuyPowerUpButton *button;
 	void applyPowerUp();
+	void applyWeapon();
 	void removeNode(cocos2d::CCNode* node);
 
 	static std::vector<std::string> getMejoras();

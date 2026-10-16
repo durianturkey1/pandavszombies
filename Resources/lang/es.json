@@ -69,5 +69,22 @@
 "defense.card.velocity.name": "VELOCIDAD",
 "defense.card.velocity.detail": "+20% velocidad de bala",
 "defense.card.slow.name": "CONGELAR",
-"defense.card.slow.detail": "los zombies caminan 10% mas lento"
+"defense.card.slow.detail": "los zombies caminan 10% mas lento",
+"weapon.equipped": "equipado",
+"weapon.owned": "tocar para equipar",
+"weapon.pistol.name": "PISTOLA",
+"weapon.pistol.detail": "estable y confiable",
+"weapon.smg.name": "METRALLETA",
+"weapon.smg.detail": "muy rapida, poco dano",
+"weapon.shotgun.name": "ESCOPETA",
+"weapon.shotgun.detail": "4 postas bien abiertas",
+"weapon.rifle.name": "RIFLE",
+"weapon.rifle.detail": "pesado, rapido, atraviesa 1",
+"weapon.flamer.name": "LANZALLAMAS",
+"weapon.flamer.detail": "un chorro de fuego continuo",
+"weapon.bazooka.name": "BAZOOKA",
+"weapon.bazooka.detail": "dano enorme, atraviesa 2",
+"defense.chapters": "capitulos",
+"defense.locked": "supera el capitulo anterior",
+"defense.boss": "LLEGA EL JEFE"
 }

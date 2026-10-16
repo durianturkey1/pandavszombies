@@ -2,6 +2,8 @@
 
 #include "DefenseBullet.h"
 #include "DefenseZombie.h"
+#include "DefenseWeapon.h"
+#include "DefenseChapterLayer.h"
 #include "../SoundUtil.h"
 #include "../daos/UserDAO.h"
 #include "../layers/GameTypeSelectionLayer.h"
@@ -82,6 +84,13 @@ bool DefenseLayer::init() {
 	this->gateY = origin.y + visibleSize.height * 0.11f;
 	this->laneTop = origin.y + visibleSize.height;
 
+	// Whichever gun is equipped in the store sets the starting weapon profile;
+	// level-up cards stack on top of it.
+	DefenseWeapon weapon = DefenseWeapon::getEquipped();
+	this->stats = weapon.getBaseStats();
+	this->bulletImage = weapon.getBulletImagePath();
+	this->weaponName = weapon.getName();
+
 	this->preloadZombies();
 	this->buildBackground();
 	this->buildHud();
@@ -99,14 +108,27 @@ void DefenseLayer::preloadZombies() {
 	SpriteUtil::preloadTextureWithFile("sprite_sheets/campesino.plist");
 	SpriteUtil::preloadTextureWithFile("sprite_sheets/oficinista.plist");
 	SpriteUtil::preloadTextureWithFile("sprite_sheets/cirujano.plist");
+	SpriteUtil::preloadTextureWithFile("sprite_sheets/sangre.plist");
 	SpriteUtil::preloadTextureWithFile("sprite_sheets/panda1.plist");
 
 	this->zombieTypes.push_back("campesino");
 	this->zombieTypes.push_back("oficinista");
 
-	// A third zombie look from chapter two on, so later chapters read differently.
-	if (this->chapter > 1) {
+	// The roster widens as chapters go up, so later ones read differently.
+	if (this->chapter >= 2) {
 		this->zombieTypes.push_back("cirujano");
+	}
+	if (this->chapter >= 4) {
+		SpriteUtil::preloadTextureWithFile("sprite_sheets/cura.plist");
+		this->zombieTypes.push_back("cura");
+	}
+	if (this->chapter >= 7) {
+		SpriteUtil::preloadTextureWithFile("sprite_sheets/elvis.plist");
+		this->zombieTypes.push_back("elvis");
+	}
+	if (this->chapter >= 10) {
+		SpriteUtil::preloadTextureWithFile("sprite_sheets/basquet.plist");
+		this->zombieTypes.push_back("basquet");
 	}
 }
 
@@ -172,7 +194,8 @@ void DefenseLayer::refreshHud() {
 	this->waveLabel->setString((Language::get("defense.wave") + " "
 			+ StringUtil::toString(this->wave) + "/"
 			+ StringUtil::toString(this->getWaveCount())).c_str());
-	this->levelLabel->setString((Language::get("defense.level") + " "
+	this->levelLabel->setString((this->weaponName + "  "
+			+ Language::get("defense.level") + " "
 			+ StringUtil::toString(this->level)).c_str());
 }
 
@@ -180,26 +203,49 @@ void DefenseLayer::refreshHud() {
 // Chapter plan
 // ---------------------------------------------------------------------------
 
+// The chapter curve. Everything scales off (chapter, wave) so there is one
+// place to tune: waves get longer, zombies get tougher and faster, and the gaps
+// between them close up.
 int DefenseLayer::getWaveCount() {
-	int count = 3 + this->chapter;
-	return count > 8 ? 8 : count;
+	int count = 3 + this->chapter / 2;
+	return count > 9 ? 9 : count;
 }
 
 int DefenseLayer::getWaveSize(int wave) {
-	return 5 + 2 * wave + 2 * this->chapter;
+	return 5 + 2 * wave + 3 * this->chapter;
 }
 
 float DefenseLayer::getZombieLife(int wave) {
-	return 8.0f + 3.0f * wave + 5.0f * (this->chapter - 1);
+	// Compounding so late chapters genuinely need upgraded guns, not just patience.
+	float chapterScale = pow(1.35f, (float) (this->chapter - 1));
+	return (7.0f + 2.5f * wave) * chapterScale;
 }
 
 float DefenseLayer::getZombieSpeed(int wave) {
-	return (14.0f + 1.5f * wave + 2.0f * (this->chapter - 1)) * (this->visibleHeight / 320.0f);
+	float speed = 14.0f + 1.2f * wave + 1.6f * (this->chapter - 1);
+	float cap = 46.0f;  // still slow enough to shoot something before it lands
+	if (speed > cap) {
+		speed = cap;
+	}
+	return speed * (this->visibleHeight / 320.0f);
 }
 
 float DefenseLayer::getSpawnInterval(int wave) {
-	float interval = 1.5f - 0.08f * wave - 0.05f * this->chapter;
-	return interval < 0.35f ? 0.35f : interval;
+	float interval = 1.5f - 0.07f * wave - 0.06f * this->chapter;
+	return interval < 0.22f ? 0.22f : interval;
+}
+
+bool DefenseLayer::isBossWave(int wave) {
+	return wave == this->getWaveCount();
+}
+
+// Every few zombies in later chapters is an elite: bigger, much tougher, slower.
+bool DefenseLayer::shouldSpawnElite() {
+	if (this->chapter < 3) {
+		return false;
+	}
+	int chance = 6 + this->chapter;  // percent-ish, climbs with the chapter
+	return (rand() % 100) < chance;
 }
 
 void DefenseLayer::startWave(int wave) {
@@ -247,8 +293,30 @@ void DefenseLayer::updateSpawning(float dt) {
 			float margin = this->visibleWidth * 0.12f;
 			float x = this->originX + margin + (rand() % (int)(this->visibleWidth - 2 * margin));
 
+			float life = this->getZombieLife(this->wave);
+			float speed = this->getZombieSpeed(this->wave);
+			float scale = 1.0f;
+
+			// The last zombie of a boss wave is a single huge one.
+			if (this->isBossWave(this->wave)
+					&& this->spawnedThisWave == this->getWaveSize(this->wave)) {
+				life *= 14.0f;
+				speed *= 0.55f;
+				scale = 2.4f;
+				this->messageLabel->setString(Language::get("defense.boss").c_str());
+				this->messageLabel->runAction(cocos2d::CCSequence::create(
+						cocos2d::CCDelayTime::create(2.0f),
+						cocos2d::CCCallFunc::create(this,
+								(cocos2d::SEL_CallFunc)(&DefenseLayer::clearMessage)),
+						NULL));
+			} else if (this->shouldSpawnElite()) {
+				life *= 3.0f;
+				speed *= 0.8f;
+				scale = 1.5f;
+			}
+
 			this->zombies.push_back(new DefenseZombie(type, x, this->laneTop + 20,
-					this->getZombieSpeed(this->wave), this->getZombieLife(this->wave), this));
+					speed, life, scale, this));
 		}
 		return;
 	}
@@ -302,8 +370,8 @@ void DefenseLayer::updateShooting(float dt) {
 	float start = baseAngle - spread * (this->stats.projectiles - 1) / 2.0f;
 
 	for (int i = 0; i < this->stats.projectiles; i++) {
-		this->bullets.push_back(new DefenseBullet(originX, originY, start + spread * i,
-				this->stats.bulletSpeed, this->stats.damage,
+		this->bullets.push_back(new DefenseBullet(this->bulletImage, originX, originY,
+				start + spread * i, this->stats.bulletSpeed, this->stats.damage,
 				this->stats.pierce, this->stats.bounce, this));
 	}
 
@@ -434,18 +502,18 @@ void DefenseLayer::showCards() {
 		cocos2d::CCLabelTTF* name = LabelUtil::create(this->offered[i].getName(), 18, 0, 0, 0, 0, DEFENSE_FONT);
 		name->setAnchorPoint(ccp(0.5, 0.5));
 		name->setPositionX(centerX);
-		name->setPositionY(centerY + cardHeight * 0.06f);
+		name->setPositionY(centerY + cardHeight * 0.04f);
 		name->setColor(cocos2d::ccc3(62, 62, 62));
-		LabelUtil::setScaleByWidth(name, cardWidth * 0.78f);
+		LabelUtil::setScaleByWidth(name, cardWidth * 0.60f);
 		this->addChild(name, 71);
 		this->cardDecorations.push_back(name);
 
 		cocos2d::CCLabelTTF* detail = cocos2d::CCLabelTTF::create(
 				this->offered[i].getDetail().c_str(), DEFENSE_FONT, 11,
-				cocos2d::CCSize(cardWidth * 0.78f, 0), cocos2d::kCCTextAlignmentCenter);
+				cocos2d::CCSize(cardWidth * 0.62f, 0), cocos2d::kCCTextAlignmentCenter);
 		detail->setAnchorPoint(ccp(0.5, 1));
 		detail->setPositionX(centerX);
-		detail->setPositionY(centerY - cardHeight * 0.02f);
+		detail->setPositionY(centerY - cardHeight * 0.06f);
 		detail->setColor(cocos2d::ccc3(62, 62, 62));
 		this->addChild(detail, 71);
 		this->cardDecorations.push_back(detail);
@@ -501,8 +569,12 @@ void DefenseLayer::finish(bool won) {
 			NULL));
 }
 
+void DefenseLayer::clearMessage() {
+	this->messageLabel->setString(" ");
+}
+
 void DefenseLayer::goToMenu() {
-	cocos2d::CCDirector::sharedDirector()->replaceScene(GameTypeSelectionLayer::scene());
+	cocos2d::CCDirector::sharedDirector()->replaceScene(DefenseChapterLayer::scene());
 }
 
 void DefenseLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pEvent) {

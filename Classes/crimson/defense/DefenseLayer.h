@@ -45,6 +45,7 @@ private:
 	// loop
 	void updateSpawning(float dt);
 	void updateZombies(float dt);
+	std::string pickZombieType();
 	void updateShooting(float dt);
 	void updateBullets(float dt);
 	void resolveCollisions();

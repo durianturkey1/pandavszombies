@@ -36,6 +36,8 @@ public:
 
 	std::vector<EquipPandaItem*> items;
 	ButtonDxCo* backButton;
+	cocos2d::CCSprite* scrollLeftButton;
+	cocos2d::CCSprite* scrollRightButton;
 
 	void addSkills(float skillsPandaX, float skillsPandaY, float skillsPandaWidth, float skillsPandaHeight);
 	void addSkill(float skillsPandaX, float skillsPandaY, float skillsPandaWidth, float skillsPandaHeight, std::string skillName, int skillValue, int index);
@@ -46,6 +48,7 @@ public:
 	int getBonus();
 	void loadMejoras(float skillsPandaWidth, float skillsPandaHeight, float skillsPandaX, float skillsPandaY, cocos2d::CCSprite* scaleMaster);
 	void createPandaItem(cocos2d::CCSprite* skillsPanda);
+	void scrollBy(float deltaX);
 	Container* skillsContainer;
 	int touchId;
 };

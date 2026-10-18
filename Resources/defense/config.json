@@ -206,12 +206,12 @@
 	"rewardPerChapter": 120,
 	"attackUpgradeDivisor": 20.0,
 	"zombies": [
-		{ "type": "campesino",  "fromChapter": 1,  "sheet": "sprite_sheets/campesino.plist" },
-		{ "type": "oficinista", "fromChapter": 1,  "sheet": "sprite_sheets/oficinista.plist" },
-		{ "type": "cirujano",   "fromChapter": 2,  "sheet": "sprite_sheets/cirujano.plist" },
-		{ "type": "cura",       "fromChapter": 4,  "sheet": "sprite_sheets/cura.plist" },
-		{ "type": "elvis",      "fromChapter": 7,  "sheet": "sprite_sheets/elvis.plist" },
-		{ "type": "basquet",    "fromChapter": 10, "sheet": "sprite_sheets/basquet.plist" }
+		{ "type": "campesino",  "fromChapter": 1,  "sheet": "sprite_sheets/campesino.plist",  "life": 1.0,  "speed": 1.0,  "scale": 1.0,  "weight": 3 },
+		{ "type": "oficinista", "fromChapter": 1,  "sheet": "sprite_sheets/oficinista.plist", "life": 1.0,  "speed": 1.05, "scale": 1.0,  "weight": 3 },
+		{ "type": "cirujano",   "fromChapter": 2,  "sheet": "sprite_sheets/cirujano.plist",   "life": 1.25, "speed": 0.9,  "scale": 1.05, "weight": 2 },
+		{ "type": "cura",       "fromChapter": 4,  "sheet": "sprite_sheets/cura.plist",       "life": 1.5,  "speed": 0.8,  "scale": 1.1,  "weight": 2 },
+		{ "type": "elvis",      "fromChapter": 7,  "sheet": "sprite_sheets/elvis.plist",      "life": 0.8,  "speed": 1.3,  "scale": 0.95, "weight": 2 },
+		{ "type": "basquet",    "fromChapter": 10, "sheet": "sprite_sheets/basquet.plist",    "life": 0.6,  "speed": 1.75, "scale": 0.9,  "weight": 1 }
 	]
 },
 

@@ -198,6 +198,36 @@ std::vector<std::string> DefenseConfig::getZombieTypes(int chapter) {
 	return result;
 }
 
+float DefenseConfig::getZombieModifier(const std::string& type, const std::string& field,
+		float fallback) {
+	const rapidjson::Value* zombies = zombieList(this->document);
+
+	if (zombies == NULL) {
+		return fallback;
+	}
+
+	for (rapidjson::SizeType i = 0; i < zombies->Size(); i++) {
+		const rapidjson::Value& zombie = (*zombies)[i];
+
+		if (!zombie.HasMember("type") || type != zombie["type"].GetString()) {
+			continue;
+		}
+
+		if (zombie.HasMember(field.c_str()) && zombie[field.c_str()].IsNumber()) {
+			return (float) zombie[field.c_str()].GetDouble();
+		}
+
+		return fallback;
+	}
+
+	return fallback;
+}
+
+int DefenseConfig::getZombieWeight(const std::string& type) {
+	int weight = (int) this->getZombieModifier(type, "weight", 1.0f);
+	return weight < 1 ? 1 : weight;
+}
+
 std::vector<std::string> DefenseConfig::getZombieSheets(int chapter) {
 	std::vector<std::string> result;
 	const rapidjson::Value* zombies = zombieList(this->document);

@@ -46,6 +46,11 @@ public:
 	std::vector<std::string> getZombieTypes(int chapter);
 	std::vector<std::string> getZombieSheets(int chapter);
 
+	/** A per-type modifier, e.g. "speed" or "life"; 1.0 when unset. */
+	float getZombieModifier(const std::string& type, const std::string& field, float fallback);
+	/** How often this type shows up relative to the others. */
+	int getZombieWeight(const std::string& type);
+
 private:
 	DefenseConfig();
 

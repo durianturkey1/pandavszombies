@@ -92,6 +92,24 @@ bool EquipPandaLayer::init() {
 	this->addChild(backSprite, 20);
 	this->backButton = new BackButton(backSprite);
 
+	float arrowHeight = visibleSize.height * 0.13f;
+
+	this->scrollLeftButton = SpriteUtil::create("buttons/LEVELS-flechaIZ.png", 0, 0);
+	this->scrollLeftButton->setScale(arrowHeight / SpriteUtil::getHeight(this->scrollLeftButton));
+	// In the gap between the panda's stat card and the item strip, at mid
+	// height so the arrows never sit on top of a buy button.
+	SpriteUtil::moveToAbsolute(this->scrollLeftButton,
+			origin.x + visibleSize.width * 0.295f,
+			origin.y + visibleSize.height * 0.50f);
+	this->addChild(this->scrollLeftButton, 30);
+
+	this->scrollRightButton = SpriteUtil::create("buttons/LEVELS-flechaD.png", 0, 0);
+	this->scrollRightButton->setScale(arrowHeight / SpriteUtil::getHeight(this->scrollRightButton));
+	SpriteUtil::moveToAbsolute(this->scrollRightButton,
+			origin.x + visibleSize.width * 0.965f,
+			origin.y + visibleSize.height * 0.50f);
+	this->addChild(this->scrollRightButton, 30);
+
 	this->setTouchEnabled(true);
 	this->setKeypadEnabled(true);
 
@@ -240,27 +258,40 @@ void EquipPandaLayer::ccTouchesMoved(cocos2d::CCSet *pTouches, cocos2d::CCEvent 
 		}
 
 		float deltaX = location.x - lastLocation.x;
-		float deltaY = location.y - lastLocation.y;
 		lastLocation = location;
 
-		float itemWidth = items[0]->getWidth();
-		float firstX = items[0]->getPositionX() - itemWidth / 2 + deltaX;
-		float lastX = items[items.size()-1]->getPositionX() + itemWidth + deltaX;
-
-		if (firstX <= minX && lastX >= maxX) {
-			for (int i = 0; i < items.size(); i++) {
-				EquipPandaItem* item = items[i];
-
-				item->move(deltaX, 0);
-				float maxX = item->getMaxX();
-				float maxXSkills = skillsContainer->getPositionX() + (skillsContainer->getWidth() / 2);
-
-				item->setVisible(!(maxX < maxXSkills));
-
-			}
-		}
+		this->scrollBy(deltaX);
 
 		it++;
+	}
+}
+
+/**
+ * Shifts the item strip, clamped to its ends. Shared by the drag handler and
+ * the arrow buttons: the store carries eighteen cards now that it sells guns,
+ * which is a lot of dragging on a desktop with no inertia.
+ */
+void EquipPandaLayer::scrollBy(float deltaX) {
+	if (this->items.empty()) {
+		return;
+	}
+
+	float itemWidth = items[0]->getWidth();
+	float firstX = items[0]->getPositionX() - itemWidth / 2 + deltaX;
+	float lastX = items[items.size() - 1]->getPositionX() + itemWidth + deltaX;
+
+	if (firstX > minX || lastX < maxX) {
+		return;
+	}
+
+	for (int i = 0; i < (int) items.size(); i++) {
+		EquipPandaItem* item = items[i];
+
+		item->move(deltaX, 0);
+		float itemMaxX = item->getMaxX();
+		float maxXSkills = skillsContainer->getPositionX() + (skillsContainer->getWidth() / 2);
+
+		item->setVisible(!(itemMaxX < maxXSkills));
 	}
 }
 
@@ -292,6 +323,19 @@ void EquipPandaLayer::ccTouchesEnded(cocos2d::CCSet *pTouches,
 		if (delta < CLICK_MAX_DELTA) {
 			if (this->backButton->isTouched(location)) {
 				this->backButton->execute();
+				return;
+			}
+
+			// One card per press, in the direction the arrow points.
+			float step = this->items.empty() ? 0 : this->items[0]->getWidth() * 1.06f;
+
+			if (this->scrollLeftButton->boundingBox().containsPoint(location)) {
+				this->scrollBy(step);
+				return;
+			}
+
+			if (this->scrollRightButton->boundingBox().containsPoint(location)) {
+				this->scrollBy(-step);
 				return;
 			}
 

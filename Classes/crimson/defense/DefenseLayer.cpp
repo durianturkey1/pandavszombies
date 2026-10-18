@@ -425,13 +425,16 @@ void DefenseLayer::updateSpawning(float dt) {
 			this->spawnedThisWave++;
 			this->refreshHud();
 
-			std::string type = this->zombieTypes[rand() % this->zombieTypes.size()];
+			std::string type = this->pickZombieType();
 			float margin = this->visibleWidth * 0.12f;
 			float x = this->originX + margin + (rand() % (int)(this->visibleWidth - 2 * margin));
 
-			float life = this->getZombieLife(this->wave);
-			float speed = this->getZombieSpeed(this->wave);
-			float scale = 1.0f;
+			DefenseConfig* typeConfig = DefenseConfig::get();
+			float life = this->getZombieLife(this->wave)
+					* typeConfig->getZombieModifier(type, "life", 1.0f);
+			float speed = this->getZombieSpeed(this->wave)
+					* typeConfig->getZombieModifier(type, "speed", 1.0f);
+			float scale = typeConfig->getZombieModifier(type, "scale", 1.0f);
 
 			// The last zombie of a boss wave is a single huge one.
 			DefenseConfig* config = DefenseConfig::get();
@@ -440,7 +443,7 @@ void DefenseLayer::updateSpawning(float dt) {
 					&& this->spawnedThisWave == this->getWaveSize(this->wave)) {
 				life *= config->getChapterFloat("bossLifeMultiplier", 14.0f);
 				speed *= config->getChapterFloat("bossSpeedMultiplier", 0.55f);
-				scale = config->getChapterFloat("bossScale", 2.4f);
+				scale *= config->getChapterFloat("bossScale", 2.4f);
 				this->messageLabel->setString(Language::get("defense.boss").c_str());
 				this->messageLabel->runAction(cocos2d::CCSequence::create(
 						cocos2d::CCDelayTime::create(2.0f),
@@ -450,7 +453,7 @@ void DefenseLayer::updateSpawning(float dt) {
 			} else if (this->shouldSpawnElite()) {
 				life *= config->getChapterFloat("eliteLifeMultiplier", 3.0f);
 				speed *= config->getChapterFloat("eliteSpeedMultiplier", 0.8f);
-				scale = config->getChapterFloat("eliteScale", 1.5f);
+				scale *= config->getChapterFloat("eliteScale", 1.5f);
 			}
 
 			this->zombies.push_back(new DefenseZombie(type, x, this->laneTop + 20,
@@ -468,6 +471,36 @@ void DefenseLayer::updateSpawning(float dt) {
 			this->messageLabel->setString(Language::get("defense.wavecleared").c_str());
 		}
 	}
+}
+
+/**
+ * Weighted so the staple zombies stay common while the specialists -- the
+ * fast one, the heavy one -- stay occasional even in late chapters where
+ * every type is unlocked.
+ */
+std::string DefenseLayer::pickZombieType() {
+	if (this->zombieTypes.empty()) {
+		return "campesino";
+	}
+
+	DefenseConfig* config = DefenseConfig::get();
+	int total = 0;
+
+	for (int i = 0; i < (int) this->zombieTypes.size(); i++) {
+		total += config->getZombieWeight(this->zombieTypes[i]);
+	}
+
+	int roll = rand() % (total > 0 ? total : 1);
+
+	for (int i = 0; i < (int) this->zombieTypes.size(); i++) {
+		roll -= config->getZombieWeight(this->zombieTypes[i]);
+
+		if (roll < 0) {
+			return this->zombieTypes[i];
+		}
+	}
+
+	return this->zombieTypes[0];
 }
 
 void DefenseLayer::updateZombies(float dt) {

@@ -89,5 +89,7 @@
 "defense.boss": "LLEGA EL JEFE",
 "defense.coins": "monedas",
 "defense.card.crit.name": "CRITICO",
-"defense.card.crit.detail": "12% de pegar 2.5x"
+"defense.card.crit.detail": "12% de pegar 2.5x",
+"offer.claim": "reclamar",
+"offer.dismiss": "no gracias"
 }

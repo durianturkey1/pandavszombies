@@ -2,6 +2,9 @@
 
 #include "DefenseChapterButton.h"
 #include "DefenseWeapon.h"
+#include "DefenseConfig.h"
+#include "DefenseOffer.h"
+#include "DefenseOfferLayer.h"
 #include "../buttons/BackButton.h"
 #include "../../dxco/DB.h"
 #include "../../dxco/LabelUtil.h"
@@ -12,6 +15,7 @@ namespace dxco {
 
 #define CHAPTER_COLUMNS 6
 #define CHAPTER_FONT "fonts/KBStickToThePlan.ttf"
+#define OFFER_POPUP_TAG 7001
 
 DefenseChapterLayer::DefenseChapterLayer() {
 	this->backButton = NULL;
@@ -40,6 +44,7 @@ bool DefenseChapterLayer::init() {
 	this->addChild(background);
 
 	int unlockedUpTo = DB::getInteger("defense.chapter", 1);
+	int chapterCount = DefenseConfig::get()->getChapterInt("count", DEFENSE_CHAPTER_COUNT);
 
 	cocos2d::CCLabelTTF* title = LabelUtil::create(Language::get("defense.chapters"), 20,
 			0, 0, 0, 0, CHAPTER_FONT);
@@ -49,22 +54,42 @@ bool DefenseChapterLayer::init() {
 	LabelUtil::setScaleByHeight(title, visibleSize.height * 0.08f);
 	this->addChild(title, 10);
 
-	// Two rows of six, sized from the space they have to share.
-	int rows = (DEFENSE_CHAPTER_COUNT + CHAPTER_COLUMNS - 1) / CHAPTER_COLUMNS;
-	float cellWidth = visibleSize.width * 0.84f / CHAPTER_COLUMNS;
-	float tileWidth = cellWidth * 0.78f;
-	float tileHeight = tileWidth * 1.5f;
-	float rowGap = visibleSize.height * 0.06f;
-	float blockHeight = rows * tileHeight + (rows - 1) * rowGap;
-	float firstRowY = origin.y + visibleSize.height * 0.46f + blockHeight / 2 - tileHeight / 2;
-	float left = origin.x + (visibleSize.width - CHAPTER_COLUMNS * cellWidth) / 2 + cellWidth / 2;
+	// The grid sizes itself to however many chapters the config declares: the
+	// tiles shrink to fit the band between the title and the bottom margin, and
+	// every row -- including a short last one -- is centred on its own.
+	int rows = (chapterCount + CHAPTER_COLUMNS - 1) / CHAPTER_COLUMNS;
+	float bandTop = origin.y + visibleSize.height * 0.82f;
+	float bandBottom = origin.y + visibleSize.height * 0.06f;
+	float bandHeight = bandTop - bandBottom;
+	float rowGap = visibleSize.height * 0.035f;
 
-	for (int i = 0; i < DEFENSE_CHAPTER_COUNT; i++) {
+	float cellWidth = visibleSize.width * 0.88f / CHAPTER_COLUMNS;
+	float tileWidth = cellWidth * 0.80f;
+	float tileHeight = tileWidth * 1.5f;
+
+	float neededHeight = rows * tileHeight + (rows - 1) * rowGap;
+	if (neededHeight > bandHeight) {
+		float shrink = (bandHeight - (rows - 1) * rowGap) / (rows * tileHeight);
+		tileHeight *= shrink;
+		tileWidth *= shrink;
+		neededHeight = rows * tileHeight + (rows - 1) * rowGap;
+	}
+
+	float firstRowY = bandBottom + neededHeight - tileHeight / 2;
+
+	for (int i = 0; i < chapterCount; i++) {
 		int chapter = i + 1;
 		int row = i / CHAPTER_COLUMNS;
 		int column = i % CHAPTER_COLUMNS;
 
-		float x = left + column * cellWidth;
+		// How many tiles share this row, so a partial row stays centred.
+		int inRow = chapterCount - row * CHAPTER_COLUMNS;
+		if (inRow > CHAPTER_COLUMNS) {
+			inRow = CHAPTER_COLUMNS;
+		}
+
+		float rowLeft = origin.x + (visibleSize.width - inRow * cellWidth) / 2 + cellWidth / 2;
+		float x = rowLeft + column * cellWidth;
 		float y = firstRowY - row * (tileHeight + rowGap);
 
 		DefenseChapterButton* button = new DefenseChapterButton(chapter,
@@ -95,13 +120,48 @@ bool DefenseChapterLayer::init() {
 	this->setTouchEnabled(true);
 	this->setKeypadEnabled(true);
 
+	this->showPendingOffer();
+
 	return true;
+}
+
+/**
+ * Offers surface here rather than mid-run: the welcome gift the first time the
+ * mode is opened, and a pack on returning from a chapter that was just cleared.
+ */
+void DefenseChapterLayer::showPendingOffer() {
+	DefenseOffer offer;
+	int runReward = DB::getInteger("defense.lastReward", 0);
+	int clearedChapter = DB::getInteger("defense.lastCleared", 0);
+
+	if (clearedChapter > 0) {
+		offer = DefenseOffer::forChapterCleared(clearedChapter);
+		DB::putInteger("defense.lastCleared", 0);
+	} else {
+		offer = DefenseOffer::forFirstRun();
+	}
+
+	if (!offer.isValid()) {
+		return;
+	}
+
+	DefenseOfferLayer* popup = DefenseOfferLayer::create(offer, runReward);
+
+	if (popup != NULL) {
+		popup->setTag(OFFER_POPUP_TAG);
+		this->addChild(popup, 100);
+	}
 }
 
 void DefenseChapterLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pEvent) {
 	cocos2d::CCTouch* touch = (cocos2d::CCTouch*) (pTouches->anyObject());
 	cocos2d::CCPoint location = touch->getLocationInView();
 	location = cocos2d::CCDirector::sharedDirector()->convertToGL(location);
+
+	// An open offer popup owns the screen.
+	if (this->getChildByTag(OFFER_POPUP_TAG) != NULL) {
+		return;
+	}
 
 	if (this->backButton->isTouched(location)) {
 		this->backButton->execute();

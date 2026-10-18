@@ -61,6 +61,9 @@ include_directories(
     ${COCOS2DX_ROOT}/CocosDenshion/include
     ${COCOS2DX_ROOT}/extensions
     ${GAME_ROOT}/Classes
+    # rapidjson ships inside the dxco submodule, where the game's own JSON
+    # loaders include it as <rapidjson/...>.
+    ${GAME_ROOT}/Classes/dxco
     ${OSX_SDK_PATH}/usr/include/libxml2
 )
 

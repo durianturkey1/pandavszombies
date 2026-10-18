@@ -89,5 +89,7 @@
 "defense.boss": "BOSS INCOMING",
 "defense.coins": "coins",
 "defense.card.crit.name": "CRIT",
-"defense.card.crit.detail": "12% chance to hit for 2.5x"
+"defense.card.crit.detail": "12% chance to hit for 2.5x",
+"offer.claim": "claim",
+"offer.dismiss": "no thanks"
 }

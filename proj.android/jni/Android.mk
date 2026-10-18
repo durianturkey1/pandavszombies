@@ -113,6 +113,10 @@ LOCAL_SRC_FILES := hellocpp/main.cpp \
                    ../../Classes/crimson/defense/DefenseWeapon.cpp \
                    ../../Classes/crimson/defense/DefenseChapterLayer.cpp \
                    ../../Classes/crimson/defense/DefenseChapterButton.cpp \
+                   ../../Classes/crimson/defense/DefenseConfig.cpp \
+                   ../../Classes/crimson/defense/DefenseOffer.cpp \
+                   ../../Classes/crimson/defense/DefenseOfferLayer.cpp \
+                   ../../Classes/crimson/defense/DefenseIcon.cpp \
                    ../../Classes/crimson/layers/LevelFinishedLayer.cpp \
                    ../../Classes/crimson/layers/HintLayer.cpp \
                    ../../Classes/crimson/layers/EquipPandaLayer.cpp \

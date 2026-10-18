@@ -121,8 +121,8 @@ Kills pay coins scaled by how tough the zombie was, and clearing a chapter pays
 a bonus, so defense funds the store on its own -- you keep what you earned even
 on a loss.
 
-There are 12 chapters, picked from a grid that only opens the ones you have
-cleared. Difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,
+There are 16 chapters, picked from a grid that only opens the ones you have
+cleared and resizes itself to however many the config declares. Difficulty is a plain formula in `DefenseLayer` (`getWaveCount`,
 `getWaveSize`, `getZombieLife`, `getZombieSpeed`, `getSpawnInterval`): waves get
 longer, zombie health compounds at 1.35x per chapter, spawns tighten, the zombie
 roster widens (new sprite sets at chapters 2, 4, 7 and 10), elites start

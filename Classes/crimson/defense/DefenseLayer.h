@@ -81,6 +81,7 @@ private:
 	DefenseStats stats;
 
 	cocos2d::CCSprite* panda;
+	cocos2d::CCSprite* quitButton;
 	cocos2d::CCLabelTTF* chapterLabel;
 	cocos2d::CCLabelTTF* waveLabel;
 	cocos2d::CCLabelTTF* levelLabel;

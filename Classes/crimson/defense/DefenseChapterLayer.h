@@ -25,6 +25,8 @@ public:
 	void ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pEvent);
 
 private:
+	void showPendingOffer();
+
 	std::vector<ButtonDxCo*> chapterButtons;
 	ButtonDxCo* backButton;
 	cocos2d::CCLabelTTF* messageLabel;

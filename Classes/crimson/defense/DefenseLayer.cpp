@@ -4,6 +4,8 @@
 #include "DefenseZombie.h"
 #include "DefenseWeapon.h"
 #include "DefenseChapterLayer.h"
+#include "DefenseConfig.h"
+#include "DefenseIcon.h"
 #include "../SoundUtil.h"
 #include "../daos/UserDAO.h"
 #include "../GameProperties.h"
@@ -32,6 +34,7 @@ DefenseLayer::DefenseLayer() {
 	this->state = PLAYING;
 
 	this->panda = NULL;
+	this->quitButton = NULL;
 	this->chapterLabel = NULL;
 	this->waveLabel = NULL;
 	this->levelLabel = NULL;
@@ -100,7 +103,8 @@ bool DefenseLayer::init() {
 	// and each purchase adds 10, worth +50% damage apiece.
 	float attack = (float) GameProperties::get("attack.damage");
 	if (attack > 10.0f) {
-		this->stats.damage *= 1.0f + (attack - 10.0f) / 20.0f;
+		this->stats.damage *= 1.0f + (attack - 10.0f)
+				/ DefenseConfig::get()->getChapterFloat("attackUpgradeDivisor", 20.0f);
 	}
 	this->bulletImage = weapon.getBulletImagePath();
 	this->fireSound = weapon.getSoundPath();
@@ -120,31 +124,18 @@ bool DefenseLayer::init() {
 }
 
 void DefenseLayer::preloadZombies() {
-	SpriteUtil::preloadTextureWithFile("sprite_sheets/campesino.plist");
-	SpriteUtil::preloadTextureWithFile("sprite_sheets/oficinista.plist");
-	SpriteUtil::preloadTextureWithFile("sprite_sheets/cirujano.plist");
-	SpriteUtil::preloadTextureWithFile("sprite_sheets/sangre.plist");
+	DefenseConfig* config = DefenseConfig::get();
+
 	SpriteUtil::preloadTextureWithFile("sprite_sheets/panda1.plist");
+	SpriteUtil::preloadTextureWithFile("sprite_sheets/sangre.plist");
 
-	this->zombieTypes.push_back("campesino");
-	this->zombieTypes.push_back("oficinista");
+	// Which zombies exist in this chapter, and their sheets, are configured.
+	std::vector<std::string> sheets = config->getZombieSheets(this->chapter);
+	for (int i = 0; i < (int) sheets.size(); i++) {
+		SpriteUtil::preloadTextureWithFile(sheets[i]);
+	}
 
-	// The roster widens as chapters go up, so later ones read differently.
-	if (this->chapter >= 2) {
-		this->zombieTypes.push_back("cirujano");
-	}
-	if (this->chapter >= 4) {
-		SpriteUtil::preloadTextureWithFile("sprite_sheets/cura.plist");
-		this->zombieTypes.push_back("cura");
-	}
-	if (this->chapter >= 7) {
-		SpriteUtil::preloadTextureWithFile("sprite_sheets/elvis.plist");
-		this->zombieTypes.push_back("elvis");
-	}
-	if (this->chapter >= 10) {
-		SpriteUtil::preloadTextureWithFile("sprite_sheets/basquet.plist");
-		this->zombieTypes.push_back("basquet");
-	}
+	this->zombieTypes = config->getZombieTypes(this->chapter);
 }
 
 void DefenseLayer::buildBackground() {
@@ -170,6 +161,13 @@ void DefenseLayer::buildBackground() {
 
 void DefenseLayer::buildHud() {
 	float top = this->originY + this->visibleHeight * 0.955f;
+
+	// A strip behind the readouts: zombies walk in from the top of the lane and
+	// used to pass straight through the text.
+	cocos2d::CCLayerColor* strip = cocos2d::CCLayerColor::create(
+			cocos2d::ccc4(0, 0, 0, 120), this->visibleWidth, this->visibleHeight * 0.115f);
+	strip->setPosition(ccp(this->originX, this->originY + this->visibleHeight * 0.885f));
+	this->addChild(strip, 55);
 
 	this->chapterLabel = LabelUtil::create(" ", 20, 0, 0, 0, 0, DEFENSE_FONT);
 	this->chapterLabel->setAnchorPoint(ccp(0, 0.5));
@@ -226,6 +224,15 @@ void DefenseLayer::buildHud() {
 	this->xpBar->setPosition(ccp(barX, barY));
 	this->addChild(this->xpBar, 60);
 
+	// Leaving a run was Escape-only, which a mouse-only player cannot discover.
+	this->quitButton = SpriteUtil::create("buttons/menu_icon_button.png", 0, 0);
+	float quitScale = (this->visibleHeight * 0.105f) / SpriteUtil::getHeight(this->quitButton);
+	this->quitButton->setScale(quitScale);
+	SpriteUtil::moveToAbsolute(this->quitButton,
+			this->originX + this->visibleWidth - SpriteUtil::getWidth(this->quitButton) * 0.7f,
+			this->originY + this->visibleHeight * 0.80f);
+	this->addChild(this->quitButton, 62);
+
 	this->refreshHud();
 }
 
@@ -259,49 +266,78 @@ void DefenseLayer::refreshHud() {
 // place to tune: waves get longer, zombies get tougher and faster, and the gaps
 // between them close up.
 int DefenseLayer::getWaveCount() {
-	int count = 3 + this->chapter / 2;
-	return count > 9 ? 9 : count;
+	DefenseConfig* config = DefenseConfig::get();
+	float count = config->getChapterFloat("waveCountBase", 3)
+			+ config->getChapterFloat("waveCountPerChapter", 0.5f) * this->chapter;
+	float cap = config->getChapterFloat("waveCountMax", 9);
+
+	return (int) (count > cap ? cap : count);
 }
 
 int DefenseLayer::getWaveSize(int wave) {
-	return 5 + 2 * wave + this->chapter;
+	DefenseConfig* config = DefenseConfig::get();
+
+	return config->getChapterInt("waveSizeBase", 5)
+			+ config->getChapterInt("waveSizePerWave", 2) * wave
+			+ config->getChapterInt("waveSizePerChapter", 1) * this->chapter;
 }
 
 float DefenseLayer::getZombieLife(int wave) {
+	DefenseConfig* config = DefenseConfig::get();
+
 	// Compounding so late chapters genuinely need upgraded guns, not just
-	// patience. 1.2x is deliberate: at 1.35x chapter 12 reached 800hp zombies
-	// and an 11,000hp boss, which no combination of guns and cards can chew
-	// through in the time a wave gives you.
-	float chapterScale = pow(1.15f, (float) (this->chapter - 1));
-	return (7.0f + 2.5f * wave) * chapterScale;
+	// patience -- but gently: at 1.35x chapter 12 reached 800hp zombies, which
+	// no combination of guns and cards can chew through in a wave.
+	float scale = pow(config->getChapterFloat("lifeChapterScale", 1.15f),
+			(float) (this->chapter - 1));
+
+	return (config->getChapterFloat("lifeBase", 7.0f)
+			+ config->getChapterFloat("lifePerWave", 2.5f) * wave) * scale;
 }
 
 float DefenseLayer::getZombieSpeed(int wave) {
-	float speed = 14.0f + 1.2f * wave + 1.6f * (this->chapter - 1);
-	float cap = 46.0f;  // still slow enough to shoot something before it lands
+	DefenseConfig* config = DefenseConfig::get();
+
+	float speed = config->getChapterFloat("speedBase", 14.0f)
+			+ config->getChapterFloat("speedPerWave", 1.2f) * wave
+			+ config->getChapterFloat("speedPerChapter", 1.6f) * (this->chapter - 1);
+	float cap = config->getChapterFloat("speedMax", 46.0f);
+
 	if (speed > cap) {
-		speed = cap;
+		speed = cap;  // still slow enough to shoot something before it lands
 	}
+
 	return speed * (this->visibleHeight / 320.0f);
 }
 
 float DefenseLayer::getSpawnInterval(int wave) {
+	DefenseConfig* config = DefenseConfig::get();
+
 	// Spawn pressure rises mostly inside a chapter, not across chapters: a
 	// chapter has to open gently enough to build levels before it squeezes.
-	float interval = 1.6f - 0.08f * wave - 0.03f * this->chapter;
-	return interval < 0.35f ? 0.35f : interval;
+	float interval = config->getChapterFloat("spawnBase", 1.6f)
+			- config->getChapterFloat("spawnPerWave", 0.08f) * wave
+			- config->getChapterFloat("spawnPerChapter", 0.03f) * this->chapter;
+	float floor_value = config->getChapterFloat("spawnMin", 0.35f);
+
+	return interval < floor_value ? floor_value : interval;
 }
 
 bool DefenseLayer::isBossWave(int wave) {
 	return wave == this->getWaveCount();
 }
 
-// Every few zombies in later chapters is an elite: bigger, much tougher, slower.
+// A share of the zombies in later chapters are elites: bigger, much tougher.
 bool DefenseLayer::shouldSpawnElite() {
-	if (this->chapter < 3) {
+	DefenseConfig* config = DefenseConfig::get();
+
+	if (this->chapter < config->getChapterInt("eliteFromChapter", 3)) {
 		return false;
 	}
-	int chance = 6 + this->chapter;  // percent-ish, climbs with the chapter
+
+	int chance = config->getChapterInt("eliteChanceBase", 6)
+			+ config->getChapterInt("eliteChancePerChapter", 1) * this->chapter;
+
 	return (rand() % 100) < chance;
 }
 
@@ -355,11 +391,13 @@ void DefenseLayer::updateSpawning(float dt) {
 			float scale = 1.0f;
 
 			// The last zombie of a boss wave is a single huge one.
+			DefenseConfig* config = DefenseConfig::get();
+
 			if (this->isBossWave(this->wave)
 					&& this->spawnedThisWave == this->getWaveSize(this->wave)) {
-				life *= 14.0f;
-				speed *= 0.55f;
-				scale = 2.4f;
+				life *= config->getChapterFloat("bossLifeMultiplier", 14.0f);
+				speed *= config->getChapterFloat("bossSpeedMultiplier", 0.55f);
+				scale = config->getChapterFloat("bossScale", 2.4f);
 				this->messageLabel->setString(Language::get("defense.boss").c_str());
 				this->messageLabel->runAction(cocos2d::CCSequence::create(
 						cocos2d::CCDelayTime::create(2.0f),
@@ -367,9 +405,9 @@ void DefenseLayer::updateSpawning(float dt) {
 								(cocos2d::SEL_CallFunc)(&DefenseLayer::clearMessage)),
 						NULL));
 			} else if (this->shouldSpawnElite()) {
-				life *= 3.0f;
-				speed *= 0.8f;
-				scale = 1.5f;
+				life *= config->getChapterFloat("eliteLifeMultiplier", 3.0f);
+				speed *= config->getChapterFloat("eliteSpeedMultiplier", 0.8f);
+				scale = config->getChapterFloat("eliteScale", 1.5f);
 			}
 
 			this->zombies.push_back(new DefenseZombie(type, x, this->laneTop + 20,
@@ -556,7 +594,10 @@ void DefenseLayer::onZombieKilled(float maxLife) {
 }
 
 int DefenseLayer::getChapterReward() {
-	return 150 + 120 * this->chapter;
+	DefenseConfig* config = DefenseConfig::get();
+
+	return config->getChapterInt("rewardBase", 150)
+			+ config->getChapterInt("rewardPerChapter", 120) * this->chapter;
 }
 
 // ---------------------------------------------------------------------------
@@ -566,7 +607,8 @@ int DefenseLayer::getChapterReward() {
 void DefenseLayer::levelUp() {
 	this->level++;
 	this->kills = 0;
-	this->killsForNextLevel = 6 + 2 * this->level;
+	this->killsForNextLevel = DefenseConfig::get()->getChapterInt("killsForFirstLevel", 6)
+			+ DefenseConfig::get()->getChapterInt("killsPerLevel", 2) * this->level;
 	this->refreshHud();
 
 	CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/bonus.ogg");
@@ -577,43 +619,73 @@ void DefenseLayer::showCards() {
 	this->state = CHOOSING_CARD;
 	this->messageLabel->setString(Language::get("defense.levelup").c_str());
 
-	this->offered = DefenseCard::draw(CARD_COUNT);
+	this->offered = DefenseCard::draw(DefenseConfig::get()->getChapterInt("cardsOffered", 3));
+
+	int cardCount = (int) this->offered.size();
+	if (cardCount <= 0) {
+		this->state = PLAYING;
+		return;
+	}
 
 	float cardWidth = this->visibleWidth * 0.25f;
 	float cardHeight = this->visibleHeight * 0.40f;
 	float gap = this->visibleWidth * 0.035f;
-	float totalWidth = CARD_COUNT * cardWidth + (CARD_COUNT - 1) * gap;
+	float totalWidth = cardCount * cardWidth + (cardCount - 1) * gap;
 	float left = this->originX + (this->visibleWidth - totalWidth) / 2;
 	float centerY = this->originY + this->visibleHeight * 0.34f;
 
 	for (int i = 0; i < (int) this->offered.size(); i++) {
 		float centerX = left + i * (cardWidth + gap) + cardWidth / 2;
+		float cardLeft = centerX - cardWidth / 2;
+		float cardBottom = centerY - cardHeight / 2;
 
-		cocos2d::CCSprite* card = SpriteUtil::create(this->offered[i].getImagePath(),
-				0, 0, cardWidth, cardHeight);
+		// Drawn panels rather than the store's card art, which carries a badge
+		// and a divider line that read as rendering glitches behind the text.
+		cocos2d::CCLayerColor* border = cocos2d::CCLayerColor::create(
+				cocos2d::ccc4(250, 220, 90, 255), cardWidth + 4, cardHeight + 4);
+		border->setPosition(ccp(cardLeft - 2, cardBottom - 2));
+		this->addChild(border, 69);
+		this->cardDecorations.push_back(border);
+
+		cocos2d::CCLayerColor* panel = cocos2d::CCLayerColor::create(
+				cocos2d::ccc4(28, 28, 34, 245), cardWidth, cardHeight);
+		panel->setPosition(ccp(cardLeft, cardBottom));
+		this->addChild(panel, 70);
+		this->cardDecorations.push_back(panel);
+
+		// The hit target stays a sprite so the touch test is unchanged, but it
+		// is invisible: the panels above are what the player sees.
+		cocos2d::CCSprite* card = SpriteUtil::create("white.png", 0, 0, cardWidth, cardHeight);
 		SpriteUtil::moveToAbsolute(card, centerX, centerY);
-		this->addChild(card, 70);
+		card->setOpacity(0);
+		this->addChild(card, 71);
 		this->cardSprites.push_back(card);
 
-		// Same proportions the store uses, so the text sits in the blank part
-		// of the card art rather than under it.
+		cocos2d::CCSprite* icon = DefenseIcon::create(this->offered[i].getImagePath(),
+				cardHeight * 0.34f);
+		if (icon != NULL) {
+			SpriteUtil::moveToAbsolute(icon, centerX, cardBottom + cardHeight * 0.70f);
+			this->addChild(icon, 72);
+			this->cardDecorations.push_back(icon);
+		}
+
 		cocos2d::CCLabelTTF* name = LabelUtil::create(this->offered[i].getName(), 18, 0, 0, 0, 0, DEFENSE_FONT);
 		name->setAnchorPoint(ccp(0.5, 0.5));
 		name->setPositionX(centerX);
-		name->setPositionY(centerY + cardHeight * 0.04f);
-		name->setColor(cocos2d::ccc3(62, 62, 62));
-		LabelUtil::setScaleByWidth(name, cardWidth * 0.60f);
-		this->addChild(name, 71);
+		name->setPositionY(cardBottom + cardHeight * 0.42f);
+		name->setColor(cocos2d::ccc3(255, 214, 80));
+		LabelUtil::setScaleByWidth(name, cardWidth * 0.80f);
+		this->addChild(name, 72);
 		this->cardDecorations.push_back(name);
 
 		cocos2d::CCLabelTTF* detail = cocos2d::CCLabelTTF::create(
 				this->offered[i].getDetail().c_str(), DEFENSE_FONT, 11,
-				cocos2d::CCSize(cardWidth * 0.62f, 0), cocos2d::kCCTextAlignmentCenter);
+				cocos2d::CCSize(cardWidth * 0.84f, 0), cocos2d::kCCTextAlignmentCenter);
 		detail->setAnchorPoint(ccp(0.5, 1));
 		detail->setPositionX(centerX);
-		detail->setPositionY(centerY - cardHeight * 0.06f);
-		detail->setColor(cocos2d::ccc3(62, 62, 62));
-		this->addChild(detail, 71);
+		detail->setPositionY(cardBottom + cardHeight * 0.32f);
+		detail->setColor(cocos2d::ccc3(225, 225, 225));
+		this->addChild(detail, 72);
 		this->cardDecorations.push_back(detail);
 	}
 }
@@ -668,6 +740,10 @@ void DefenseLayer::finish(bool won) {
 
 	UserDAO::addCoins(payout);
 
+	// Hand the result to the chapter list, which is where offers are shown.
+	DB::putInteger("defense.lastReward", payout);
+	DB::putInteger("defense.lastCleared", won ? this->chapter : 0);
+
 	// Let the player read the result, then drop back to the menu.
 	this->runAction(cocos2d::CCSequence::create(
 			cocos2d::CCDelayTime::create(2.5f),
@@ -690,7 +766,7 @@ void DefenseLayer::goToMenu() {
 }
 
 void DefenseLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pEvent) {
-	if (this->state != CHOOSING_CARD) {
+	if (this->state == FINISHED) {
 		return;
 	}
 
@@ -698,11 +774,19 @@ void DefenseLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pE
 	cocos2d::CCPoint location = touch->getLocationInView();
 	location = cocos2d::CCDirector::sharedDirector()->convertToGL(location);
 
-	for (int i = 0; i < (int) this->cardSprites.size(); i++) {
-		if (this->cardSprites[i]->boundingBox().containsPoint(location)) {
-			this->chooseCard(i);
-			return;
+	// Picking a card comes first: the cards cover most of the screen.
+	if (this->state == CHOOSING_CARD) {
+		for (int i = 0; i < (int) this->cardSprites.size(); i++) {
+			if (this->cardSprites[i]->boundingBox().containsPoint(location)) {
+				this->chooseCard(i);
+				return;
+			}
 		}
+		return;
+	}
+
+	if (this->quitButton != NULL && this->quitButton->boundingBox().containsPoint(location)) {
+		this->goToMenu();
 	}
 }
 

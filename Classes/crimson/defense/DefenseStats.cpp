@@ -1,10 +1,12 @@
 #include "DefenseStats.h"
 
-#include "../../dxco/Language.h"
+#include "DefenseConfig.h"
 
 #include <cstdlib>
 
 namespace dxco {
+
+#define CARDS "cards"
 
 DefenseStats::DefenseStats() {
 	this->damage = 5.0f;
@@ -18,103 +20,81 @@ DefenseStats::DefenseStats() {
 	this->critChance = 0.0f;
 }
 
-DefenseCard::DefenseCard(Kind kind) {
-	this->kind = kind;
+DefenseCard::DefenseCard(int index) {
+	this->index = index;
 }
 
+/**
+ * Effects are named in the config so a card is pure data. "min"/"max" clamp the
+ * result, which is what stops RAPID from collapsing the fire interval to zero.
+ */
 void DefenseCard::apply(DefenseStats& stats) const {
-	switch (this->kind) {
-		case CARD_MULTISHOT:
-			stats.projectiles += 1;
-			break;
-		case CARD_PIERCE:
-			stats.pierce += 1;
-			break;
-		case CARD_BOUNCE:
-			stats.bounce += 1;
-			break;
-		case CARD_RAPID:
-			// Multiplicative so it keeps mattering, floored so the game cannot
-			// turn into a solid wall of bullets.
-			stats.fireInterval *= 0.80f;
-			if (stats.fireInterval < 0.08f) {
-				stats.fireInterval = 0.08f;
-			}
-			break;
-		case CARD_POWER:
-			stats.damage *= 1.30f;
-			break;
-		case CARD_VELOCITY:
-			stats.bulletSpeed *= 1.20f;
-			break;
-		case CARD_SLOW:
-			stats.enemySlow += 0.10f;
-			if (stats.enemySlow > 0.5f) {
-				stats.enemySlow = 0.5f;
-			}
-			break;
-		case CARD_CRIT:
-			stats.critChance += 0.12f;
-			if (stats.critChance > 0.75f) {
-				stats.critChance = 0.75f;
-			}
-			break;
+	DefenseConfig* config = DefenseConfig::get();
+
+	std::string effect = config->getString(CARDS, this->index, "effect", "");
+	float value = config->getFloat(CARDS, this->index, "value", 0);
+	float minimum = config->getFloat(CARDS, this->index, "min", 0);
+	float maximum = config->getFloat(CARDS, this->index, "max", 0);
+	bool hasMin = config->has(CARDS, this->index, "min");
+	bool hasMax = config->has(CARDS, this->index, "max");
+
+	if (effect == "addProjectiles") {
+		stats.projectiles += (int) value;
+	} else if (effect == "addPierce") {
+		stats.pierce += (int) value;
+	} else if (effect == "addBounce") {
+		stats.bounce += (int) value;
+	} else if (effect == "mulFireInterval") {
+		stats.fireInterval *= value;
+		if (hasMin && stats.fireInterval < minimum) {
+			stats.fireInterval = minimum;
+		}
+	} else if (effect == "mulDamage") {
+		stats.damage *= value;
+	} else if (effect == "mulBulletSpeed") {
+		stats.bulletSpeed *= value;
+	} else if (effect == "mulSpread") {
+		stats.spreadDegrees *= value;
+		if (hasMax && stats.spreadDegrees > maximum) {
+			stats.spreadDegrees = maximum;
+		}
+	} else if (effect == "addSlow") {
+		stats.enemySlow += value;
+		if (hasMax && stats.enemySlow > maximum) {
+			stats.enemySlow = maximum;
+		}
+	} else if (effect == "addCrit") {
+		stats.critChance += value;
+		if (hasMax && stats.critChance > maximum) {
+			stats.critChance = maximum;
+		}
+	} else if (effect == "focus") {
+		// Trades coverage for punch, the mirror of WIDE.
+		stats.spreadDegrees *= value;
+		stats.damage *= 1.15f;
 	}
 }
 
 std::string DefenseCard::getName() const {
-	switch (this->kind) {
-		case CARD_MULTISHOT: return Language::get("defense.card.multishot.name");
-		case CARD_PIERCE:    return Language::get("defense.card.pierce.name");
-		case CARD_BOUNCE:    return Language::get("defense.card.bounce.name");
-		case CARD_RAPID:     return Language::get("defense.card.rapid.name");
-		case CARD_POWER:     return Language::get("defense.card.power.name");
-		case CARD_VELOCITY:  return Language::get("defense.card.velocity.name");
-		case CARD_SLOW:      return Language::get("defense.card.slow.name");
-		case CARD_CRIT:      return Language::get("defense.card.crit.name");
-	}
-	return " ";
+	return DefenseConfig::get()->getText(CARDS, this->index, "name", " ");
 }
 
 std::string DefenseCard::getDetail() const {
-	switch (this->kind) {
-		case CARD_MULTISHOT: return Language::get("defense.card.multishot.detail");
-		case CARD_PIERCE:    return Language::get("defense.card.pierce.detail");
-		case CARD_BOUNCE:    return Language::get("defense.card.bounce.detail");
-		case CARD_RAPID:     return Language::get("defense.card.rapid.detail");
-		case CARD_POWER:     return Language::get("defense.card.power.detail");
-		case CARD_VELOCITY:  return Language::get("defense.card.velocity.detail");
-		case CARD_SLOW:      return Language::get("defense.card.slow.detail");
-		case CARD_CRIT:      return Language::get("defense.card.crit.detail");
-	}
-	return " ";
+	return DefenseConfig::get()->getText(CARDS, this->index, "detail", " ");
 }
 
-// Reuses the upgrade icons the store already ships.
 std::string DefenseCard::getImagePath() const {
-	switch (this->kind) {
-		case CARD_MULTISHOT: return "equip/MEJORA_balas_act.png";
-		case CARD_PIERCE:    return "equip/MEJORA_balasv_act.png";
-		case CARD_BOUNCE:    return "equip/MEJORA_bomba_act.png";
-		case CARD_RAPID:     return "equip/MEJORA_reloj_act.png";
-		case CARD_POWER:     return "equip/MEJORA_mochila_act.png";
-		case CARD_VELOCITY:  return "equip/MEJORA_velocidad_act.png";
-		case CARD_SLOW:      return "equip/MEJORA_congelar_act.png";
-		case CARD_CRIT:      return "equip/MEJORA_iman_act.png";
-	}
-	return "equip/MEJORA_balas_act.png";
+	return DefenseConfig::get()->getString(CARDS, this->index, "icon",
+			"equip/MEJORA_balas_act.png");
 }
 
 std::vector<DefenseCard> DefenseCard::draw(int count) {
-	std::vector<Kind> pool;
-	pool.push_back(CARD_MULTISHOT);
-	pool.push_back(CARD_PIERCE);
-	pool.push_back(CARD_BOUNCE);
-	pool.push_back(CARD_RAPID);
-	pool.push_back(CARD_POWER);
-	pool.push_back(CARD_VELOCITY);
-	pool.push_back(CARD_SLOW);
-	pool.push_back(CARD_CRIT);
+	std::vector<int> pool;
+	int total = DefenseConfig::get()->getCount(CARDS);
+
+	for (int i = 0; i < total; i++) {
+		pool.push_back(i);
+	}
 
 	std::vector<DefenseCard> result;
 

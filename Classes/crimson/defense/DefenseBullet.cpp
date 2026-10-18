@@ -26,6 +26,10 @@ DefenseBullet::DefenseBullet(const std::string& image, float x, float y, float a
 	this->bounce = bounce;
 }
 
+DefenseBullet::~DefenseBullet() {
+	this->remove();
+}
+
 bool DefenseBullet::update(float dt, float minX, float maxX, float maxY) {
 	if (!this->sprite) {
 		return false;

@@ -6,6 +6,9 @@
 #include "DefenseOffer.h"
 #include "DefenseOfferLayer.h"
 #include "../buttons/BackButton.h"
+#include "../layers/EquipPandaLayer.h"
+#include "../daos/UserDAO.h"
+#include "../../dxco/StringUtil.h"
 #include "../../dxco/DB.h"
 #include "../../dxco/LabelUtil.h"
 #include "../../dxco/Language.h"
@@ -18,6 +21,17 @@ namespace dxco {
 #define OFFER_POPUP_TAG 7001
 
 DefenseChapterLayer::DefenseChapterLayer() {
+	this->backButton = NULL;
+	this->shopButton = NULL;
+}
+
+DefenseChapterLayer::~DefenseChapterLayer() {
+	for (int i = 0; i < (int) this->chapterButtons.size(); i++) {
+		delete this->chapterButtons[i];
+	}
+
+	this->chapterButtons.clear();
+	delete this->backButton;
 	this->backButton = NULL;
 }
 
@@ -109,6 +123,29 @@ bool DefenseChapterLayer::init() {
 	this->addChild(backSprite, 20);
 	this->backButton = new BackButton(backSprite);
 
+	// Coin balance doubles as the way into the store: the guns are sold there,
+	// and backing out to the main menu to find them was a detour.
+	this->shopButton = SpriteUtil::create("equip/coins.png", 0, 0);
+	float shopScale = (visibleSize.height * 0.11f) / SpriteUtil::getHeight(this->shopButton);
+	this->shopButton->setScale(shopScale);
+	SpriteUtil::moveToAbsolute(this->shopButton,
+			origin.x + SpriteUtil::getWidth(this->shopButton) * 0.7f,
+			origin.y + visibleSize.height - SpriteUtil::getHeight(this->shopButton) * 0.75f);
+	this->addChild(this->shopButton, 20);
+
+	// equip/coins.png is a pill with the coin on the left and room for the
+	// number inside it, which is how the store uses it -- putting the number
+	// beside the pill ran it into the centred title.
+	cocos2d::CCLabelTTF* coins = LabelUtil::create(StringUtil::toString(UserDAO::getCoins()),
+			18, 0, 0, 0, 0, CHAPTER_FONT);
+	coins->setAnchorPoint(ccp(0, 0.5));
+	coins->setPositionX(this->shopButton->getPositionX()
+			- SpriteUtil::getWidth(this->shopButton) * 0.12f);
+	coins->setPositionY(this->shopButton->getPositionY());
+	coins->setColor(cocos2d::ccc3(255, 255, 255));
+	LabelUtil::setScaleByHeight(coins, SpriteUtil::getHeight(this->shopButton) * 0.42f);
+	this->addChild(coins, 21);
+
 	this->messageLabel = LabelUtil::create(" ", 18, 0, 0, 0, 0, CHAPTER_FONT);
 	this->messageLabel->setAnchorPoint(ccp(0.5, 0.5));
 	this->messageLabel->setPositionX(origin.x + visibleSize.width * 0.5f);
@@ -165,6 +202,11 @@ void DefenseChapterLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEv
 
 	if (this->backButton->isTouched(location)) {
 		this->backButton->execute();
+		return;
+	}
+
+	if (this->shopButton != NULL && this->shopButton->boundingBox().containsPoint(location)) {
+		cocos2d::CCDirector::sharedDirector()->pushScene(EquipPandaLayer::scene());
 		return;
 	}
 

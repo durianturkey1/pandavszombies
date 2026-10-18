@@ -29,6 +29,7 @@ public:
 
 private:
 	void close();
+	void removeSelf();
 
 	DefenseOffer offer;
 	int runReward;

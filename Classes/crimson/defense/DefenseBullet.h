@@ -19,6 +19,8 @@ public:
 	DefenseBullet(const std::string& image, float x, float y, float angleDegrees,
 			float speed, float damage, int pierce, int bounce, cocos2d::CCNode* parent);
 
+	~DefenseBullet();
+
 	/** Moves the bullet; returns false once it should be removed. */
 	bool update(float dt, float minX, float maxX, float maxY);
 

@@ -23,6 +23,7 @@ class DefenseBullet;
 class DefenseLayer : public AbstractMenuLayer {
 public:
 	DefenseLayer();
+	virtual ~DefenseLayer();
 
 	virtual bool init();
 	static cocos2d::CCScene* scene(int chapter);

@@ -16,6 +16,7 @@ namespace dxco {
 class DefenseChapterLayer : public AbstractMenuLayer {
 public:
 	DefenseChapterLayer();
+	virtual ~DefenseChapterLayer();
 
 	virtual bool init();
 	static cocos2d::CCScene* scene();
@@ -29,6 +30,7 @@ private:
 
 	std::vector<ButtonDxCo*> chapterButtons;
 	ButtonDxCo* backButton;
+	cocos2d::CCSprite* shopButton;
 	cocos2d::CCLabelTTF* messageLabel;
 };
 

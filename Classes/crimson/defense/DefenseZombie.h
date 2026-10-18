@@ -20,6 +20,8 @@ public:
 	DefenseZombie(std::string type, float x, float y, float speed, float life,
 			float scale, cocos2d::CCNode* parent);
 
+	~DefenseZombie();
+
 	void update(float dt, float slowFactor);
 	void hurt(float damage);
 	bool isDead();

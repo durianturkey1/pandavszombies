@@ -62,6 +62,23 @@ DefenseLayer::DefenseLayer() {
 	this->xpBarWidth = 0;
 }
 
+// Zombies and bullets are plain C++ objects owning a cocos node each: the node
+// goes away with the scene, but the object and its animation do not.
+DefenseLayer::~DefenseLayer() {
+	for (int i = 0; i < (int) this->zombies.size(); i++) {
+		this->zombies[i]->remove();
+		delete this->zombies[i];
+	}
+
+	for (int i = 0; i < (int) this->bullets.size(); i++) {
+		this->bullets[i]->remove();
+		delete this->bullets[i];
+	}
+
+	this->zombies.clear();
+	this->bullets.clear();
+}
+
 cocos2d::CCScene* DefenseLayer::scene(int chapter) {
 	cocos2d::CCScene* scene = cocos2d::CCScene::create();
 
@@ -346,6 +363,20 @@ void DefenseLayer::startWave(int wave) {
 	this->spawnedThisWave = 0;
 	this->spawnTimer = 0;
 	this->refreshHud();
+
+	// Announce the wave, then clear it: without this the only feedback between
+	// waves was the counter in the corner quietly ticking over.
+	if (this->messageLabel != NULL) {
+		this->messageLabel->setColor(cocos2d::ccc3(255, 225, 90));
+		this->messageLabel->setString((Language::get("defense.wave") + " "
+				+ StringUtil::toString(wave)).c_str());
+		this->messageLabel->stopAllActions();
+		this->messageLabel->runAction(cocos2d::CCSequence::create(
+				cocos2d::CCDelayTime::create(1.6f),
+				cocos2d::CCCallFunc::create(this,
+						(cocos2d::SEL_CallFunc)(&DefenseLayer::clearMessage)),
+				NULL));
+	}
 }
 
 // ---------------------------------------------------------------------------

@@ -89,7 +89,7 @@ bool DefenseOfferLayer::build(DefenseOffer offer, int runReward) {
 			cocos2d::kCCTextAlignmentCenter);
 	detail->setAnchorPoint(ccp(0.5, 1));
 	detail->setPositionX(centerX);
-	detail->setPositionY(panelBottom + panelHeight * 0.50f);
+	detail->setPositionY(panelBottom + panelHeight * 0.54f);
 	detail->setColor(cocos2d::ccc3(228, 228, 228));
 	this->addChild(detail, 3);
 
@@ -97,7 +97,7 @@ bool DefenseOfferLayer::build(DefenseOffer offer, int runReward) {
 			0, 0, 0, 0, OFFER_FONT);
 	reward->setAnchorPoint(ccp(0.5, 0.5));
 	reward->setPositionX(centerX);
-	reward->setPositionY(panelBottom + panelHeight * 0.37f);
+	reward->setPositionY(panelBottom + panelHeight * 0.33f);
 	reward->setColor(cocos2d::ccc3(130, 230, 130));
 	LabelUtil::setScaleByHeight(reward, panelHeight * 0.075f);
 	this->addChild(reward, 3);
@@ -189,6 +189,19 @@ void DefenseOfferLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEven
 void DefenseOfferLayer::close() {
 	this->closed = true;
 	this->setTouchEnabled(false);
+	this->setVisible(false);
+
+	// Removal is deferred by a frame: this runs from inside the layer's own
+	// touch handler, and freeing the delegate while the dispatcher is walking
+	// its list is how that turns into a crash.
+	this->runAction(cocos2d::CCSequence::create(
+			cocos2d::CCDelayTime::create(0),
+			cocos2d::CCCallFunc::create(this,
+					(cocos2d::SEL_CallFunc)(&DefenseOfferLayer::removeSelf)),
+			NULL));
+}
+
+void DefenseOfferLayer::removeSelf() {
 	this->removeFromParentAndCleanup(true);
 }
 

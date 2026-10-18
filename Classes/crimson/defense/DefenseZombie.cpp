@@ -60,6 +60,11 @@ DefenseZombie::DefenseZombie(std::string type, float x, float y, float speed, fl
 	this->dead = false;
 }
 
+DefenseZombie::~DefenseZombie() {
+	// Safe to call twice: remove() nulls what it frees.
+	this->remove();
+}
+
 void DefenseZombie::update(float dt, float slowFactor) {
 	if (this->dead) {
 		return;

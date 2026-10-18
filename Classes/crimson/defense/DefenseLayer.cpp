@@ -59,6 +59,10 @@ DefenseLayer::DefenseLayer() {
 	this->coinsEarned = 0;
 	this->coinsLabel = NULL;
 	this->xpBar = NULL;
+	this->bossBar = NULL;
+	this->bossLabel = NULL;
+	this->bossZombie = NULL;
+	this->bossBarWidth = 0;
 	this->xpBarWidth = 0;
 }
 
@@ -299,7 +303,15 @@ int DefenseLayer::getWaveCount() {
 			+ config->getChapterFloat("waveCountPerChapter", 0.5f) * this->chapter;
 	float cap = config->getChapterFloat("waveCountMax", 9);
 
-	return (int) (count > cap ? cap : count);
+	if (count > cap) {
+		count = cap;
+	}
+
+	if (this->isMilestoneChapter()) {
+		count += config->getChapterFloat("milestoneExtraWaves", 1);
+	}
+
+	return (int) count;
 }
 
 int DefenseLayer::getWaveSize(int wave) {
@@ -319,8 +331,14 @@ float DefenseLayer::getZombieLife(int wave) {
 	float scale = pow(config->getChapterFloat("lifeChapterScale", 1.15f),
 			(float) (this->chapter - 1));
 
-	return (config->getChapterFloat("lifeBase", 7.0f)
+	float life = (config->getChapterFloat("lifeBase", 7.0f)
 			+ config->getChapterFloat("lifePerWave", 2.5f) * wave) * scale;
+
+	if (this->isMilestoneChapter()) {
+		life *= config->getChapterFloat("milestoneLifeMultiplier", 1.25f);
+	}
+
+	return life;
 }
 
 float DefenseLayer::getZombieSpeed(int wave) {
@@ -333,6 +351,10 @@ float DefenseLayer::getZombieSpeed(int wave) {
 
 	if (speed > cap) {
 		speed = cap;  // still slow enough to shoot something before it lands
+	}
+
+	if (this->isMilestoneChapter()) {
+		speed *= config->getChapterFloat("milestoneSpeedMultiplier", 1.1f);
 	}
 
 	return speed * (this->visibleHeight / 320.0f);
@@ -349,6 +371,17 @@ float DefenseLayer::getSpawnInterval(int wave) {
 	float floor_value = config->getChapterFloat("spawnMin", 0.35f);
 
 	return interval < floor_value ? floor_value : interval;
+}
+
+/**
+ * Every Nth chapter is a showdown: tougher zombies throughout, an extra wave
+ * and a boss several times the size of a normal one. The interval and all the
+ * multipliers come from the config.
+ */
+bool DefenseLayer::isMilestoneChapter() {
+	int every = DefenseConfig::get()->getChapterInt("milestoneEvery", 0);
+
+	return every > 0 && this->chapter % every == 0;
 }
 
 bool DefenseLayer::isBossWave(int wave) {
@@ -404,6 +437,7 @@ void DefenseLayer::update(float dt) {
 	this->updateZombies(dt);
 	this->updateBullets(dt);
 	this->resolveCollisions();
+	this->updateBossBar();
 }
 
 void DefenseLayer::updateSpawning(float dt) {
@@ -435,16 +469,28 @@ void DefenseLayer::updateSpawning(float dt) {
 			float speed = this->getZombieSpeed(this->wave)
 					* typeConfig->getZombieModifier(type, "speed", 1.0f);
 			float scale = typeConfig->getZombieModifier(type, "scale", 1.0f);
+			bool spawningBoss = false;
 
 			// The last zombie of a boss wave is a single huge one.
 			DefenseConfig* config = DefenseConfig::get();
 
 			if (this->isBossWave(this->wave)
 					&& this->spawnedThisWave == this->getWaveSize(this->wave)) {
-				life *= config->getChapterFloat("bossLifeMultiplier", 14.0f);
-				speed *= config->getChapterFloat("bossSpeedMultiplier", 0.55f);
-				scale *= config->getChapterFloat("bossScale", 2.4f);
-				this->messageLabel->setString(Language::get("defense.boss").c_str());
+				bool milestone = this->isMilestoneChapter();
+
+				life *= milestone
+						? config->getChapterFloat("milestoneBossLifeMultiplier", 45.0f)
+						: config->getChapterFloat("bossLifeMultiplier", 14.0f);
+				speed *= milestone
+						? config->getChapterFloat("milestoneBossSpeedMultiplier", 0.45f)
+						: config->getChapterFloat("bossSpeedMultiplier", 0.55f);
+				scale *= milestone
+						? config->getChapterFloat("milestoneBossScale", 3.2f)
+						: config->getChapterFloat("bossScale", 2.4f);
+
+				this->messageLabel->setString(Language::get(
+						milestone ? "defense.finalboss" : "defense.boss").c_str());
+				spawningBoss = true;
 				this->messageLabel->runAction(cocos2d::CCSequence::create(
 						cocos2d::CCDelayTime::create(2.0f),
 						cocos2d::CCCallFunc::create(this,
@@ -456,8 +502,13 @@ void DefenseLayer::updateSpawning(float dt) {
 				scale *= config->getChapterFloat("eliteScale", 1.5f);
 			}
 
-			this->zombies.push_back(new DefenseZombie(type, x, this->laneTop + 20,
-					speed, life, scale, this));
+			DefenseZombie* spawned = new DefenseZombie(type, x, this->laneTop + 20,
+					speed, life, scale, this);
+			this->zombies.push_back(spawned);
+
+			if (spawningBoss) {
+				this->showBossBar(spawned);
+			}
 		}
 		return;
 	}
@@ -664,6 +715,19 @@ void DefenseLayer::resolveCollisions() {
 
 		if (zombie->isDead()) {
 			float maxLife = zombie->maxLife;
+
+			if (zombie == this->bossZombie) {
+				this->bossZombie = NULL;
+
+				if (this->bossBar != NULL) {
+					this->bossBar->removeFromParentAndCleanup(true);
+					this->bossBar = NULL;
+				}
+				if (this->bossLabel != NULL) {
+					this->bossLabel->removeFromParentAndCleanup(true);
+					this->bossLabel = NULL;
+				}
+			}
 			zombie->remove();
 			delete zombie;
 			this->spawnBlood(zombie->getX(), zombie->getY(), zombie->scale);
@@ -720,8 +784,14 @@ void DefenseLayer::onZombieKilled(float maxLife) {
 int DefenseLayer::getChapterReward() {
 	DefenseConfig* config = DefenseConfig::get();
 
-	return config->getChapterInt("rewardBase", 150)
+	int reward = config->getChapterInt("rewardBase", 150)
 			+ config->getChapterInt("rewardPerChapter", 120) * this->chapter;
+
+	if (this->isMilestoneChapter()) {
+		reward *= config->getChapterInt("milestoneRewardMultiplier", 3);
+	}
+
+	return reward;
 }
 
 // ---------------------------------------------------------------------------
@@ -881,6 +951,59 @@ void DefenseLayer::finish(bool won) {
 // would drop out to the main menu. Go back to the chapter list instead.
 void DefenseLayer::keyBackClicked() {
 	this->goToMenu();
+}
+
+/**
+ * A boss carries its own small bar like any elite, but the chapter boss is the
+ * whole point of the wave: it gets a bar across the top so its health is
+ * readable from anywhere on screen.
+ */
+void DefenseLayer::showBossBar(DefenseZombie* boss) {
+	this->bossZombie = boss;
+	this->bossBarWidth = this->visibleWidth * 0.76f;
+
+	float barHeight = this->visibleHeight * 0.028f;
+	float barX = this->originX + (this->visibleWidth - this->bossBarWidth) / 2;
+	float barY = this->originY + this->visibleHeight * 0.845f;
+
+	cocos2d::CCLayerColor* back = cocos2d::CCLayerColor::create(
+			cocos2d::ccc4(0, 0, 0, 170), this->bossBarWidth, barHeight);
+	back->setPosition(ccp(barX, barY));
+	this->addChild(back, 63);
+	this->cardDecorations.push_back(back);
+
+	this->bossBar = cocos2d::CCLayerColor::create(
+			cocos2d::ccc4(220, 60, 60, 235), this->bossBarWidth, barHeight);
+	this->bossBar->setPosition(ccp(barX, barY));
+	this->addChild(this->bossBar, 64);
+
+	this->bossLabel = LabelUtil::create(Language::get(
+			this->isMilestoneChapter() ? "defense.finalboss" : "defense.boss"),
+			14, 0, 0, 0, 0, DEFENSE_FONT);
+	this->bossLabel->setAnchorPoint(ccp(0.5, 0.5));
+	this->bossLabel->setPositionX(this->originX + this->visibleWidth / 2);
+	this->bossLabel->setPositionY(barY - barHeight * 1.1f);
+	this->bossLabel->setColor(cocos2d::ccc3(255, 214, 80));
+	LabelUtil::setScaleByHeight(this->bossLabel, this->visibleHeight * 0.045f);
+	this->addChild(this->bossLabel, 64);
+}
+
+void DefenseLayer::updateBossBar() {
+	if (this->bossBar == NULL || this->bossZombie == NULL) {
+		return;
+	}
+
+	// The pointer is cleared the moment the boss is deleted, so this only ever
+	// reads a live zombie.
+	float ratio = (this->bossZombie->maxLife > 0)
+			? this->bossZombie->life / this->bossZombie->maxLife : 0;
+
+	if (ratio < 0) {
+		ratio = 0;
+	}
+
+	this->bossBar->setContentSize(cocos2d::CCSize(this->bossBarWidth * ratio,
+			this->bossBar->getContentSize().height));
 }
 
 void DefenseLayer::clearMessage() {

@@ -8,14 +8,15 @@ namespace dxco {
 /** One chapter tile: starts the chapter, or refuses if it is still locked. */
 class DefenseChapterButton: public ButtonDxCo {
 public:
-	DefenseChapterButton(int chapter, bool unlocked, bool cleared, float x, float y,
-			float width, float height);
+	DefenseChapterButton(int chapter, bool unlocked, bool cleared, bool milestone,
+			float x, float y, float width, float height);
 
 	virtual void execute();
 
 	int chapter;
 	bool unlocked;
 	bool cleared;
+	bool milestone;
 	cocos2d::CCLabelTTF* label;
 };
 

@@ -107,8 +107,12 @@ bool DefenseChapterLayer::init() {
 		float x = rowLeft + column * cellWidth;
 		float y = firstRowY - row * (tileHeight + rowGap);
 
+		int milestoneEvery = DefenseConfig::get()->getChapterInt("milestoneEvery", 0);
+		bool milestone = milestoneEvery > 0 && chapter % milestoneEvery == 0;
+
 		DefenseChapterButton* button = new DefenseChapterButton(chapter,
-				chapter <= unlockedUpTo, chapter < unlockedUpTo, x, y, tileWidth, tileHeight);
+				chapter <= unlockedUpTo, chapter < unlockedUpTo, milestone,
+				x, y, tileWidth, tileHeight);
 
 		this->addChild(button->sprite, 10);
 		this->addChild(button->label, 11);

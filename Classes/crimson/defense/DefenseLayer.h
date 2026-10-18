@@ -70,6 +70,9 @@ private:
 	float getZombieSpeed(int wave);
 	float getSpawnInterval(int wave);
 	bool isBossWave(int wave);
+	bool isMilestoneChapter();
+	void showBossBar(DefenseZombie* boss);
+	void updateBossBar();
 	bool shouldSpawnElite();
 
 	State state;
@@ -91,6 +94,10 @@ private:
 	cocos2d::CCLabelTTF* messageLabel;
 	cocos2d::CCLabelTTF* coinsLabel;
 	cocos2d::CCLayerColor* xpBar;
+	cocos2d::CCLayerColor* bossBar;
+	cocos2d::CCLabelTTF* bossLabel;
+	DefenseZombie* bossZombie;
+	float bossBarWidth;
 	float xpBarWidth;
 
 	std::vector<DefenseCard> offered;

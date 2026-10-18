@@ -91,5 +91,6 @@
 "defense.card.crit.name": "CRIT",
 "defense.card.crit.detail": "12% chance to hit for 2.5x",
 "offer.claim": "claim",
-"offer.dismiss": "no thanks"
+"offer.dismiss": "no thanks",
+"defense.finalboss": "FINAL BOSS"
 }

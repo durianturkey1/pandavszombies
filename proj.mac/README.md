@@ -142,6 +142,9 @@ shotgun, rifle, flamer, bazooka, each trading fire rate against damage and
 coverage. Level-up cards stack on top, so MULTISHOT is worth far more on a
 shotgun than on a rifle.
 
+The chapter list shows the coin balance (tap it to open the store), the gun the
+next run will start with, and three tile states: cleared, open, locked.
+
 The menu button reuses the unused `buttons/challenge_button.png` art, so it
 reads "challenge" on screen. Swap that file to rename the mode.
 

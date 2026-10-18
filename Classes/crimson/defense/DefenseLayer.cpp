@@ -99,6 +99,13 @@ bool DefenseLayer::init() {
 		CocosDenshion::SimpleAudioEngine::sharedEngine()->setEffectsVolume(0);
 	}
 
+	// The chapter list stops the menu track on the way in, which left the run
+	// silent apart from gunfire.
+	if (SoundUtil::isMusicOn()) {
+		CocosDenshion::SimpleAudioEngine::sharedEngine()->setBackgroundMusicVolume(0.4f);
+		CocosDenshion::SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sounds/bg1.mp3", true);
+	}
+
 	cocos2d::CCSize visibleSize = cocos2d::CCDirector::sharedDirector()->getVisibleSize();
 	cocos2d::CCPoint origin = cocos2d::CCDirector::sharedDirector()->getVisibleOrigin();
 
@@ -512,8 +519,31 @@ void DefenseLayer::updateShooting(float dt) {
 
 	float baseAngle = atan2(targetY - originY, targetX - originX) * 180.0f / (float) M_PI;
 
-	// Fan the volley out around the aim line.
+	// Fan the volley out around the aim line, but tighten the fan with distance.
+	//
+	// A fixed angular spread brackets the target when the projectile count is
+	// even -- a 4 pellet shotgun puts two pellets either side of the aim line
+	// and none on it, so at range every pellet missed and the gun did nothing.
+	// Capping the fan so its width at the target stays near the zombie's own
+	// size keeps the close-range cone while guaranteeing the volley connects.
 	float spread = this->stats.spreadDegrees;
+
+	if (this->stats.projectiles > 1) {
+		float dx = targetX - originX;
+		float dy = targetY - originY;
+		float distance = sqrt(dx * dx + dy * dy);
+
+		if (distance > 1.0f) {
+			float halfWidth = target->getRadius() * 1.4f;
+			float maxFan = atan(halfWidth / distance) * 180.0f / (float) M_PI;
+			float maxSpread = maxFan / ((this->stats.projectiles - 1) / 2.0f);
+
+			if (spread > maxSpread) {
+				spread = maxSpread;
+			}
+		}
+	}
+
 	float start = baseAngle - spread * (this->stats.projectiles - 1) / 2.0f;
 
 	for (int i = 0; i < this->stats.projectiles; i++) {
@@ -793,6 +823,7 @@ void DefenseLayer::clearMessage() {
 }
 
 void DefenseLayer::goToMenu() {
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->stopBackgroundMusic();
 	cocos2d::CCDirector::sharedDirector()->replaceScene(DefenseChapterLayer::scene());
 }
 
@@ -813,9 +844,11 @@ void DefenseLayer::ccTouchesBegan(cocos2d::CCSet *pTouches, cocos2d::CCEvent *pE
 				return;
 			}
 		}
-		return;
 	}
 
+	// Quitting stays available while the cards are up: the card screen pauses
+	// the run indefinitely, so blocking the only visible way out there left a
+	// mouse-only player with nothing but the Escape key.
 	if (this->quitButton != NULL && this->quitButton->boundingBox().containsPoint(location)) {
 		this->goToMenu();
 	}

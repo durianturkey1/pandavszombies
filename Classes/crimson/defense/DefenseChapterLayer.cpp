@@ -3,6 +3,7 @@
 #include "DefenseChapterButton.h"
 #include "DefenseWeapon.h"
 #include "DefenseConfig.h"
+#include "DefenseIcon.h"
 #include "DefenseOffer.h"
 #include "DefenseOfferLayer.h"
 #include "../buttons/BackButton.h"
@@ -107,7 +108,7 @@ bool DefenseChapterLayer::init() {
 		float y = firstRowY - row * (tileHeight + rowGap);
 
 		DefenseChapterButton* button = new DefenseChapterButton(chapter,
-				chapter <= unlockedUpTo, x, y, tileWidth, tileHeight);
+				chapter <= unlockedUpTo, chapter < unlockedUpTo, x, y, tileWidth, tileHeight);
 
 		this->addChild(button->sprite, 10);
 		this->addChild(button->label, 11);
@@ -145,6 +146,27 @@ bool DefenseChapterLayer::init() {
 	coins->setColor(cocos2d::ccc3(255, 255, 255));
 	LabelUtil::setScaleByHeight(coins, SpriteUtil::getHeight(this->shopButton) * 0.42f);
 	this->addChild(coins, 21);
+
+	// Which gun the run will start with, so the choice is visible before
+	// committing to a chapter rather than only once the HUD appears.
+	DefenseWeapon equipped = DefenseWeapon::getEquipped();
+	cocos2d::CCSprite* gunIcon = DefenseIcon::create(equipped.getImagePath(),
+			visibleSize.height * 0.09f);
+
+	if (gunIcon != NULL) {
+		SpriteUtil::moveToAbsolute(gunIcon,
+				origin.x + visibleSize.width * 0.68f,
+				origin.y + visibleSize.height * 0.945f);
+		this->addChild(gunIcon, 20);
+	}
+
+	cocos2d::CCLabelTTF* gunName = LabelUtil::create(equipped.getName(), 16, 0, 0, 0, 0, CHAPTER_FONT);
+	gunName->setAnchorPoint(ccp(0, 0.5));
+	gunName->setPositionX(origin.x + visibleSize.width * 0.715f);
+	gunName->setPositionY(origin.y + visibleSize.height * 0.945f);
+	gunName->setColor(cocos2d::ccc3(210, 210, 210));
+	LabelUtil::setScaleByHeight(gunName, visibleSize.height * 0.05f);
+	this->addChild(gunName, 20);
 
 	this->messageLabel = LabelUtil::create(" ", 18, 0, 0, 0, 0, CHAPTER_FONT);
 	this->messageLabel->setAnchorPoint(ccp(0.5, 0.5));

@@ -83,8 +83,7 @@ EquipPandaItem::EquipPandaItem(std::string item, float x, float y, float width,
 
 	this->addChild(coinsLabel);
 
-	if (!(this->item == "bazooka.unlocked" ||this->item == "fire.unlocked" || this->item == "firebullet.unlocked" || this->item == "frenzy.unlocked"
-			|| DefenseWeapon::isWeaponKey(this->item))) {
+	if (!(this->item == "bazooka.unlocked" ||this->item == "fire.unlocked" || this->item == "firebullet.unlocked" || this->item == "frenzy.unlocked")) {
 		std::string cantidadStr = StringUtil::toString(
 				this->getCantidadDisponible());
 

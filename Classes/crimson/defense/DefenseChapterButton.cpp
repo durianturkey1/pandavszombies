@@ -8,13 +8,20 @@
 
 namespace dxco {
 
-DefenseChapterButton::DefenseChapterButton(int chapter, bool unlocked, float x, float y,
-		float width, float height) {
+DefenseChapterButton::DefenseChapterButton(int chapter, bool unlocked, bool cleared,
+		float x, float y, float width, float height) {
 
 	this->chapter = chapter;
 	this->unlocked = unlocked;
+	this->cleared = cleared;
 
-	std::string texture = unlocked ? "buttons/LEVELS-x0.png" : "buttons/LEVELS-bloqueado.png";
+	// Three states worth telling apart at a glance: cleared, open, locked.
+	std::string texture = "buttons/LEVELS-bloqueado.png";
+	if (cleared) {
+		texture = "buttons/LEVELS-x3.png";
+	} else if (unlocked) {
+		texture = "buttons/LEVELS-x0.png";
+	}
 	this->sprite = SpriteUtil::create(texture, 0, 0, width, height);
 	SpriteUtil::moveToAbsolute((cocos2d::CCSprite*) this->sprite, x, y);
 	this->on();

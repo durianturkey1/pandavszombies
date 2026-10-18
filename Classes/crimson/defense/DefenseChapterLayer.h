@@ -27,6 +27,7 @@ public:
 
 private:
 	void showPendingOffer();
+	void showLastResult();
 
 	std::vector<ButtonDxCo*> chapterButtons;
 	ButtonDxCo* backButton;

@@ -263,9 +263,13 @@ void DefenseLayer::buildHud() {
 void DefenseLayer::refreshHud() {
 	this->chapterLabel->setString((Language::get("defense.chapter") + " "
 			+ StringUtil::toString(this->chapter)).c_str());
+	int left = (this->getWaveSize(this->wave) - this->spawnedThisWave)
+			+ (int) this->zombies.size();
+
 	this->waveLabel->setString((Language::get("defense.wave") + " "
 			+ StringUtil::toString(this->wave) + "/"
-			+ StringUtil::toString(this->getWaveCount())).c_str());
+			+ StringUtil::toString(this->getWaveCount())
+			+ "   " + StringUtil::toString(left < 0 ? 0 : left)).c_str());
 	this->coinsLabel->setString((Language::get("defense.coins") + " "
 			+ StringUtil::toString(this->coinsEarned)).c_str());
 
@@ -419,6 +423,7 @@ void DefenseLayer::updateSpawning(float dt) {
 		if (this->spawnTimer <= 0) {
 			this->spawnTimer = this->getSpawnInterval(this->wave);
 			this->spawnedThisWave++;
+			this->refreshHud();
 
 			std::string type = this->zombieTypes[rand() % this->zombieTypes.size()];
 			float margin = this->visibleWidth * 0.12f;
@@ -628,6 +633,7 @@ void DefenseLayer::resolveCollisions() {
 			float maxLife = zombie->maxLife;
 			zombie->remove();
 			delete zombie;
+			this->spawnBlood(zombie->getX(), zombie->getY(), zombie->scale);
 			CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sounds/splat.ogg");
 			this->onZombieKilled(maxLife);
 		} else {
@@ -636,6 +642,30 @@ void DefenseLayer::resolveCollisions() {
 	}
 
 	this->zombies = liveZombies;
+}
+
+/**
+ * The blood sheet is already loaded for this mode; a kill with no reaction at
+ * all made the shooting feel like it was not connecting.
+ */
+void DefenseLayer::spawnBlood(float x, float y, float scale) {
+	std::string type = "sangre" + StringUtil::toString(rand() % 2 + 1) + "_";
+
+	cocos2d::CCArray* frames = cocos2d::CCArray::createWithCapacity(31);
+	for (int i = 0; i < 31; i++) {
+		frames->addObject(SpriteUtil::createSpriteFrame(type + StringUtil::padLeft(i, 4) + ".png"));
+	}
+
+	float size = 46.0f * scale;
+	cocos2d::CCSprite* splat = SpriteUtil::create(type + "0000.png", 0, 0, size, size, true);
+	SpriteUtil::moveToAbsolute(splat, x, y);
+	this->addChild(splat, 15);
+
+	cocos2d::CCAnimation* animation = cocos2d::CCAnimation::createWithSpriteFrames(frames, 0.015f);
+	splat->runAction(cocos2d::CCSequence::create(
+			cocos2d::CCAnimate::create(animation),
+			cocos2d::CCRemoveSelf::create(),
+			NULL));
 }
 
 void DefenseLayer::onZombieKilled(float maxLife) {
@@ -804,6 +834,8 @@ void DefenseLayer::finish(bool won) {
 	// Hand the result to the chapter list, which is where offers are shown.
 	DB::putInteger("defense.lastReward", payout);
 	DB::putInteger("defense.lastCleared", won ? this->chapter : 0);
+	DB::putInteger("defense.lastFailed", won ? 0 : this->chapter);
+	DB::putInteger("defense.lastWave", this->wave);
 
 	// Let the player read the result, then drop back to the menu.
 	this->runAction(cocos2d::CCSequence::create(

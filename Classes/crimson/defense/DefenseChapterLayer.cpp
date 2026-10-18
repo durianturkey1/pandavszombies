@@ -74,7 +74,7 @@ bool DefenseChapterLayer::init() {
 	// every row -- including a short last one -- is centred on its own.
 	int rows = (chapterCount + CHAPTER_COLUMNS - 1) / CHAPTER_COLUMNS;
 	float bandTop = origin.y + visibleSize.height * 0.82f;
-	float bandBottom = origin.y + visibleSize.height * 0.06f;
+	float bandBottom = origin.y + visibleSize.height * 0.10f;
 	float bandHeight = bandTop - bandBottom;
 	float rowGap = visibleSize.height * 0.035f;
 
@@ -171,10 +171,12 @@ bool DefenseChapterLayer::init() {
 	this->messageLabel = LabelUtil::create(" ", 18, 0, 0, 0, 0, CHAPTER_FONT);
 	this->messageLabel->setAnchorPoint(ccp(0.5, 0.5));
 	this->messageLabel->setPositionX(origin.x + visibleSize.width * 0.5f);
-	this->messageLabel->setPositionY(origin.y + visibleSize.height * 0.07f);
+	this->messageLabel->setPositionY(origin.y + visibleSize.height * 0.045f);
 	this->messageLabel->setColor(cocos2d::ccc3(240, 90, 90));
 	LabelUtil::setScaleByHeight(this->messageLabel, visibleSize.height * 0.055f);
 	this->addChild(this->messageLabel, 20);
+
+	this->showLastResult();
 
 	this->setTouchEnabled(true);
 	this->setKeypadEnabled(true);
@@ -182,6 +184,28 @@ bool DefenseChapterLayer::init() {
 	this->showPendingOffer();
 
 	return true;
+}
+
+/**
+ * A lost run drops straight back to this list, so without this the only trace
+ * of it was the coin balance having gone up a little.
+ */
+void DefenseChapterLayer::showLastResult() {
+	int failed = DB::getInteger("defense.lastFailed", 0);
+
+	if (failed <= 0) {
+		return;
+	}
+
+	int reward = DB::getInteger("defense.lastReward", 0);
+	int wave = DB::getInteger("defense.lastWave", 0);
+
+	this->messageLabel->setColor(cocos2d::ccc3(240, 150, 90));
+	this->messageLabel->setString((Language::get("defense.failed") + "  "
+			+ Language::get("defense.wave") + " " + StringUtil::toString(wave)
+			+ "  +" + StringUtil::toString(reward)).c_str());
+
+	DB::putInteger("defense.lastFailed", 0);
 }
 
 /**

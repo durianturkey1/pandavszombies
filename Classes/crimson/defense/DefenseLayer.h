@@ -49,6 +49,7 @@ private:
 	void updateBullets(float dt);
 	void resolveCollisions();
 	void onZombieKilled(float maxLife);
+	void spawnBlood(float x, float y, float scale);
 	void refreshHud();
 	int getChapterReward();
 
